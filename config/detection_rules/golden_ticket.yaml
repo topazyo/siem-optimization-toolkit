@@ -1,0 +1,35 @@
+# config/detection_rules/golden_ticket.yaml
+
+id: "GoldenTicket_001"
+name: "Advanced Golden Ticket Detection"
+description: "Detects potential Golden Ticket attacks using advanced correlation"
+risk_level: "high"
+tactics:
+  - "Credential Access"
+  - "Lateral Movement"
+techniques:
+  - "T1558.001"
+  - "T1550.002"
+query: |
+  let lookback = timeframe;
+  let ticket_threshold = threshold;
+  SecurityEvent
+  | where TimeGenerated > ago(lookback)
+  | where EventID == 4769
+  | extend TicketOptions = extract("Ticket Options:(.*)", 1, tostring(EventData))
+  | where TicketOptions has "0x40810000"
+  | summarize
+      TicketCount = count(),
+      SourceIPs = make_set(IpAddress),
+      UserList = make_set(TargetUserName)
+  by bin(TimeGenerated, 1h)
+  | where TicketCount > ticket_threshold
+parameters:
+  timeframe: "7d"
+  threshold: 2
+enabled: true
+last_modified: "2024-01-15T00:00:00Z"
+author: "Security Team"
+validation_rules:
+  min_threshold: 1
+  max_lookback: "30d"

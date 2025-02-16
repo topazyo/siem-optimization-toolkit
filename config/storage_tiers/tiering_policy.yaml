@@ -1,0 +1,27 @@
+# config/storage_tiers/tiering_policy.yaml
+
+storage_tiers:
+  hot_tier:
+    retention_days: 30
+    query_frequency: "real-time"
+    log_types:
+      - SecurityAlert
+      - SecurityIncident
+      - AuditLogs
+    cost_threshold: 2.5  # USD per GB
+
+  warm_tier:
+    retention_days: 90
+    query_frequency: "daily"
+    log_types:
+      - SigninLogs
+      - AuditLogs
+    cost_threshold: 0.5  # USD per GB
+
+  cold_tier:
+    retention_days: 365
+    query_frequency: "on-demand"
+    log_types:
+      - AzureActivity
+      - Office365
+    cost_threshold: 0.1  # USD per GB

@@ -1,0 +1,100 @@
+# config/retention_policies/retention_policy.yaml
+
+version: "1.0"
+metadata:
+  description: "Advanced retention policies for Sentinel workspace"
+  last_updated: "2024-01-15"
+  author: "Security Engineering Team"
+
+policies:
+  security_events:
+    pattern: "Security.*"
+    tiers:
+      hot:
+        retention_days: 30
+        query_frequency: "high"
+        auto_archive: false
+      warm:
+        retention_days: 90
+        query_frequency: "medium"
+        auto_archive: true
+      cold:
+        retention_days: 365
+        query_frequency: "low"
+        auto_archive: true
+    compliance:
+      requirements:
+        - "ISO27001_A.12.4"
+        - "GDPR_Article_32"
+        - "SOX_Section_404"
+      data_classification: "sensitive"
+      geo_restrictions: ["EU", "US"]
+
+  audit_logs:
+    pattern: "Audit.*"
+    tiers:
+      hot:
+        retention_days: 7
+        query_frequency: "medium"
+        auto_archive: false
+      warm:
+        retention_days: 30
+        query_frequency: "low"
+        auto_archive: true
+      cold:
+        retention_days: 730
+        query_frequency: "archive"
+        auto_archive: true
+    compliance:
+      requirements:
+        - "ISO27001_A.16.1"
+        - "HIPAA_164.308"
+      data_classification: "confidential"
+      geo_restrictions: ["EU"]
+
+  operational_logs:
+    pattern: "Operation.*|Diagnostic.*"
+    tiers:
+      hot:
+        retention_days: 3
+        query_frequency: "high"
+        auto_archive: false
+      warm:
+        retention_days: 15
+        query_frequency: "medium"
+        auto_archive: true
+      cold:
+        retention_days: 90
+        query_frequency: "low"
+        auto_archive: true
+    compliance:
+      requirements:
+        - "ISO27001_A.12.1"
+      data_classification: "internal"
+      geo_restrictions: ["ANY"]
+
+thresholds:
+  cost_per_gb:
+    hot: 2.5
+    warm: 0.5
+    cold: 0.1
+  query_frequency:
+    high: 100  # queries per day
+    medium: 50
+    low: 10
+    archive: 1
+
+automation:
+  tier_transition:
+    enabled: true
+    schedule: "0 0 * * *"  # daily at midnight
+    notification:
+      enabled: true
+      channels:
+        - email: "security-team@company.com"
+        - teams: "Security Operations"
+  cleanup:
+    enabled: true
+    schedule: "0 2 * * *"  # daily at 2 AM
+    backup_required: true
+    backup_location: "azure-storage://backup-container"

@@ -1,0 +1,285 @@
+# Project-specific files
+config/*.json
+config/*.yaml
+!config/examples/*.json
+!config/examples/*.yaml
+.env
+.env.*
+credentials.json
+secrets.yaml
+*_credentials.*
+
+# Log files
+logs/
+*.log
+log/
+tmp/
+temp/
+debug/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sentinel and Azure specific
+.sentinel/
+.azure/
+azurecredentials.json
+sentinel_workspace.json
+*.kubeconfig
+*.pfx
+*.pem
+*.key
+*.crt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PowerShell
+*.pssproj
+*.ps1.tests
+TestResults.xml
+coverage.json
+coverage.xml
+
+# Node
+node_modules/
+jspm_packages/
+.npm
+.node_repl_history
+*.tgz
+.yarn-integrity
+.next
+.nuxt
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.vs/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+.netbeans/
+nbproject/
+.buildpath
+
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Build and package files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.dylib
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.msi
+*.msm
+*.msp
+
+# Test coverage and reports
+coverage/
+.coverage
+.tox/
+.nox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+.testmondata
+.tmontmp
+reports/
+test-results/
+
+# Documentation
+docs/_build/
+docs/api/
+site/
+
+# Backup files
+*.bak
+*.gho
+*.ori
+*.orig
+*.tmp
+*.swp
+*.swo
+*~
+
+# Local development
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Virtual machine and container files
+.vagrant/
+*.box
+.docker/
+*.dockerignore
+docker-compose.override.yml
+
+# Dependency directories and files
+vendor/
+jspm_packages/
+bower_components/
+.pnp/
+.pnp.js
+
+# Compiled source
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Package management
+package-lock.json
+yarn.lock
+Pipfile.lock
+poetry.lock
+
+# Environment management
+.python-version
+.ruby-version
+.node-version
+.nvmrc
+.tool-versions
+
+# Generated files
+generated/
+dist/
+build/
+out/
+bin/
+obj/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Monitoring and metrics
+metrics/
+*.metrics
+monitoring/
+*.monitor
+
+# Temporary and cache files
+.tmp/
+.temp/
+.cache/
+*.cache
+*.tmp
+*.temp
+
+# Security and sensitive information
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+*.keystore
+*.jks
+*_rsa
+*_dsa
+*_ed25519
+*_ecdsa
+*.gpg
+*.pgp
+*.asc
+*.env.*
+*.config
+!example.config
+!sample.config
+!template.config
+
+# Deployment and CI/CD
+.deploy/
+.github/workflows/*.local.yml
+.gitlab-ci.local.yml
+.azure-pipelines.local.yml
+
+# Database
+*.sql
+*.sqlite
+*.db
+*.dmp
+*.mdb
+*.accdb
+
+# Workspace and project files
+*.workspace
+*.project
+.code-workspace
+
+# Shell scripts with sensitive information
+*_token.sh
+*_secret.sh
+*_credential.sh
+*_password.sh

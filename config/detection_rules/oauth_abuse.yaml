@@ -1,0 +1,33 @@
+# config/detection_rules/oauth_abuse.yaml
+
+id: "OAuthAbuse_001"
+name: "OAuth Token Abuse Detection"
+description: "Detects potential OAuth token theft and abuse patterns"
+risk_level: "medium"
+tactics:
+  - "Initial Access"
+  - "Persistence"
+techniques:
+  - "T1550.001"
+query: |
+  let suspicious_apps = dynamic(app_list);
+  let suspicious_permissions = dynamic(permission_list);
+  AuditLogs
+  | where TimeGenerated > ago(timeframe)
+  | where OperationName has "Add OAuth2PermissionGrant"
+  | extend AppId = tostring(TargetResources[0].id)
+  | extend Permissions = tostring(TargetResources[0].modifiedProperties)
+  | where AppId in (suspicious_apps)
+      or Permissions has_any (suspicious_permissions)
+parameters:
+  timeframe: "24h"
+  app_list: []
+  permission_list:
+    - "Mail.Read"
+    - "Files.ReadWrite.All"
+enabled: true
+last_modified: "2024-01-15T00:00:00Z"
+author: "Security Team"
+validation_rules:
+  min_apps: 1
+  required_permissions: true

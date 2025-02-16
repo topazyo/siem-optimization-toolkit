@@ -1,0 +1,64 @@
+// src/python/utilities/schemas/cost_analysis.json
+
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "cost_thresholds": {
+        "type": "object",
+        "properties": {
+          "daily_ingestion": {
+            "type": "number",
+            "description": "Maximum daily ingestion volume in GB"
+          },
+          "query_execution": {
+            "type": "number",
+            "description": "Maximum daily query cost in USD"
+          },
+          "storage_tier": {
+            "type": "object",
+            "properties": {
+              "hot": {
+                "type": "number",
+                "description": "Cost per GB for hot storage"
+              },
+              "warm": {
+                "type": "number",
+                "description": "Cost per GB for warm storage"
+              },
+              "cold": {
+                "type": "number",
+                "description": "Cost per GB for cold storage"
+              }
+            },
+            "required": ["hot", "warm", "cold"]
+          }
+        },
+        "required": ["daily_ingestion", "query_execution", "storage_tier"]
+      },
+      "optimization_rules": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["table", "storage", "query"]
+            },
+            "threshold": {
+              "type": "number",
+              "description": "Threshold value for triggering optimization"
+            },
+            "actions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["type", "threshold", "actions"]
+        }
+      }
+    },
+    "required": ["cost_thresholds", "optimization_rules"]
+  }

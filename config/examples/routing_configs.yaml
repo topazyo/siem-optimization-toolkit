@@ -1,0 +1,71 @@
+# config/examples/routing_configs.yaml
+
+# High-Security Configuration
+high_security:
+  rules:
+    - name: "critical_security_events"
+      priority: 1
+      conditions:
+        - field: "severity"
+          operator: "equals"
+          value: "critical"
+        - field: "category"
+          operator: "in"
+          value: ["security", "authentication"]
+      transformations:
+        - type: "field_encrypt"
+          fields: ["user.password", "credentials"]
+        - type: "ip_anonymize"
+          fields: ["source.ip", "destination.ip"]
+        - type: "timestamp_normalize"
+          fields: ["event_time", "detection_time"]
+      destination:
+        type: "elasticsearch"
+        config:
+          url: "https://elastic.security.local"
+          index: "security-events"
+          
+# Compliance Configuration
+compliance:
+  rules:
+    - name: "audit_logs"
+      priority: 2
+      conditions:
+        - field: "type"
+          operator: "equals"
+          value: "audit"
+      transformations:
+        - type: "json_flatten"
+        - type: "field_aggregate"
+          fields: ["user.id", "action", "resource.id"]
+          target_field: "audit_summary"
+          operation: "concat"
+          separator: "|"
+      destination:
+        type: "s3"
+        config:
+          bucket: "compliance-logs"
+          prefix: "audit/sentinel"
+
+# Performance Configuration
+performance:
+  rules:
+    - name: "system_metrics"
+      priority: 3
+      conditions:
+        - field: "category"
+          operator: "equals"
+          value: "performance"
+      transformations:
+        - type: "json_structure"
+          template:
+            timestamp: "$event_time"
+            metrics:
+              cpu: "$system.cpu.usage"
+              memory: "$system.memory.usage"
+              disk: "$system.disk.usage"
+      destination:
+        type: "kafka"
+        config:
+          bootstrap_servers: ["kafka1:9092", "kafka2:9092"]
+          topic: "system-metrics"
