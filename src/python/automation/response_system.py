@@ -6,14 +6,24 @@ from datetime import datetime
 import json
 import yaml
 from dataclasses import dataclass
+import logging # Added import
 
 @dataclass
 class ThreatResponse:
-    threat_id: str
-    timestamp: datetime
-    actions_taken: List[str]
-    status: str
-    affected_resources: List[str]
+    """
+    Represents the outcome of an automated response to a detected threat.
+
+    This dataclass stores information about the specific threat, when the
+    response was handled, what actions were performed, the overall status
+    of the response, and which resources were affected.
+    """
+    threat_id: str  # Unique identifier of the threat that was handled.
+    timestamp: datetime  # Timestamp of when the response actions were completed.
+    actions_taken: List[str]  # A list of strings describing the actions performed
+                               # (e.g., "Executed: block_ip", "Executed: isolate_host").
+    status: str  # Overall status of the response (e.g., "completed", "partial", "failed").
+    affected_resources: List[str]  # List of resources (e.g., IP addresses, hostnames, user IDs)
+                                   # that were targeted by the response actions.
 
 class AutomatedResponseSystem:
     """
@@ -21,8 +31,37 @@ class AutomatedResponseSystem:
     """
 
     def __init__(self, config_path: str = 'config/response_actions.yaml'):
+        """
+        Initializes the AutomatedResponseSystem instance.
+
+        This constructor loads response action configurations from a specified
+        YAML file. These configurations define what actions to take for different
+        types and severities of threats. It also initializes a list to store
+        the history of actions taken.
+
+        Args:
+            config_path (str, optional): The file system path to the YAML file
+                                        containing response action configurations.
+                                        Defaults to 'config/response_actions.yaml'.
+
+        Initializes key attributes:
+        - `response_actions` (Dict): A dictionary loaded from the `config_path`
+                                     file. This dictionary maps threat types and
+                                     severities to lists of predefined response actions.
+        - `action_history` (List[ThreatResponse]): A list to store `ThreatResponse`
+                                                 objects, recording each threat handled
+                                                 and the response taken.
+        """
         self.response_actions = self._load_response_actions(config_path)
         self.action_history = []
+        # It's good practice to also initialize a logger here if it's used elsewhere, e.g.:
+        # import logging
+        # self.logger = logging.getLogger(__name__)
+
+        # It's good practice to also initialize a logger here if it's used elsewhere, e.g.:
+        # import logging
+        # self.logger = logging.getLogger(__name__)
+
 
     def _load_response_actions(self, path: str) -> Dict:
         """Load response action configurations."""
@@ -30,7 +69,36 @@ class AutomatedResponseSystem:
             return yaml.safe_load(f)
 
     async def handle_threat(self, threat_finding: Dict) -> ThreatResponse:
-        """Handle a detected threat with appropriate response actions."""
+        """
+        Asynchronously handles a detected threat by determining and executing
+        appropriate automated response actions based on pre-configured rules.
+
+        The method first identifies the relevant response actions from its
+        configuration based on the `threat_finding`'s type and severity.
+        It then executes these actions (e.g., blocking an IP, isolating a host).
+        Finally, it records the details of the actions taken and their outcome
+        as a `ThreatResponse` object, which is also added to the action history.
+
+        Args:
+            threat_finding (Dict): A dictionary containing details of the detected
+                                   threat. Expected keys might include:
+                                   - 'id' (str): A unique identifier for the threat.
+                                   - 'type' (str): The type of threat (e.g., "malware_detection",
+                                     "suspicious_login"). This is used to look up
+                                     response actions in the configuration.
+                                   - 'severity' (str): The severity of the threat (e.g.,
+                                     "low", "medium", "high").
+                                   - Other relevant details about the threat.
+
+        Returns:
+            ThreatResponse: A `ThreatResponse` object detailing the actions taken,
+                            their status, affected resources, and other metadata.
+
+        Raises:
+            Exception: Propagates exceptions that occur if critical errors happen
+                       during threat handling, though individual action failures
+                       are typically caught and reflected in the response status.
+        """
         try:
             # Determine appropriate response actions
             actions = self._determine_response_actions(threat_finding)
