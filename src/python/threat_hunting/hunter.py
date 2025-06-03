@@ -80,6 +80,7 @@ class ThreatHunter:
         self.logger = logging.getLogger(__name__) # Added logger initialization
 
 
+
     def _load_hunting_queries(self) -> Dict:
         """
         Load custom hunting queries from the specified path or default location.
