@@ -1,0 +1,17 @@
+aiohttp
+aioboto3
+azure-storage-blob
+azure-eventhub
+google-cloud-storage
+PyYAML
+pandas
+numpy
+plotly
+azure-mgmt-loganalytics
+azure-identity
+azure-mgmt-monitor
+scipy
+aiokafka
+prometheus-client
+jsonschema
+cryptography
