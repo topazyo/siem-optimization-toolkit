@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Union, Callable, Any # Added Any
 from dataclasses import dataclass, field
 import asyncio
 import aiokafka
+from pathlib import Path # Added import
 from azure.storage.blob.aio import BlobServiceClient
 from azure.eventhub.aio import EventHubProducerClient
 from datetime import datetime, timedelta
@@ -111,12 +112,42 @@ class EnhancedLogRouter:
         self._setup_destinations()
         self._initialize_monitoring()
 
-    # --- Stubs for initialization helpers ---
+    # --- Updated _load_config method ---
     def _load_config(self, config_path: str) -> Dict:
-        """Stub for loading router configuration from a YAML file."""
-        self.logger.warning("EnhancedLogRouter._load_config is a stub and not yet implemented.")
-        return {'rules': []}
+        """
+        Loads router configuration from the specified YAML file.
 
+        Uses `pathlib.Path` for robust path handling. If the file does not exist
+        or an error occurs during parsing, logs a warning/error and returns a
+        default configuration dictionary.
+        """
+        actual_path = Path(config_path)
+        self.logger.info(f"EnhancedLogRouter: Loading configuration from: {actual_path.resolve()}")
+
+        if not actual_path.exists():
+            self.logger.warning(
+                f"Configuration file not found at {actual_path.resolve()}. "
+                f"Returning default empty configuration."
+            )
+            return {'rules': [], 'settings': {}}
+
+        try:
+            with open(actual_path, 'r') as f:
+                loaded_config = yaml.safe_load(f)
+                if loaded_config is None: # Handle empty YAML file case
+                    self.logger.warning(f"Configuration file at {actual_path.resolve()} is empty. Returning default.")
+                    return {'rules': [], 'settings': {}}
+                return loaded_config
+        except yaml.YAMLError as e:
+            self.logger.error(f"Error parsing YAML configuration from {actual_path.resolve()}: {e}. "
+                              f"Returning default empty configuration.")
+            return {'rules': [], 'settings': {}}
+        except Exception as e:
+            self.logger.error(f"Unexpected error loading configuration from {actual_path.resolve()}: {e}. "
+                              f"Returning default empty configuration.")
+            return {'rules': [], 'settings': {}}
+
+    # --- Stubs for other initialization helpers ---
     def _load_rules(self):
         """Load and validate routing rules."""
         # Note: This method calls _validate_rule, which is now a stub.
@@ -262,9 +293,24 @@ class EnhancedLogRouter:
         pass
 
     async def _apply_condition(self, field_value: Any, operator: str, condition_value: Any) -> bool:
-        """Stub for applying a single condition operator."""
-        self.logger.warning("EnhancedLogRouter._apply_condition is a stub and not yet implemented.")
-        return True
+        """
+        Applies a single condition operator to a field value against a condition value.
+        Supports 'exists', 'equals', and 'contains' operators.
+        """
+        if operator == "exists":
+            return field_value is not None
+        elif operator == "equals":
+            return str(field_value) == str(condition_value)
+        elif operator == "contains":
+            if isinstance(field_value, str) and isinstance(condition_value, str):
+                return condition_value in field_value
+            # Could extend to lists or other iterable types if needed
+            # e.g., if isinstance(field_value, list) and not isinstance(condition_value, list): return condition_value in field_value
+            # e.g., if isinstance(field_value, list) and isinstance(condition_value, list): return any(item in field_value for item in condition_value)
+            return False
+        else:
+            self.logger.warning(f"Unsupported operator '{operator}' in _apply_condition. Returning False.")
+            return False
 
     async def _apply_transformations(self, context: TransformationContext) -> Dict:
         """Apply transformations to log data with context."""
@@ -355,8 +401,34 @@ class EnhancedLogRouter:
         return log
 
     async def _transform_field_combine(self, log: Dict, transform: Dict, context: TransformationContext) -> Dict:
-        """Stub for combining fields."""
-        self.logger.warning("EnhancedLogRouter._transform_field_combine is a stub and not yet implemented.")
+        """
+        Combines values from multiple source fields into a single target field,
+        joined by a specified separator. Relies on _get_nested_value and _set_nested_value.
+        """
+        source_fields = transform.get('source_fields', []) # Changed from 'fields' to be more specific
+        target_field = transform.get('target_field')
+        separator = transform.get('separator', '')
+
+        if not target_field or not source_fields:
+            self.logger.warning("EnhancedLogRouter._transform_field_combine: Missing 'source_fields' or 'target_field' in transform config.")
+            return log
+
+        values_to_combine = []
+        for field_path in source_fields:
+            value = self._get_nested_value(log, field_path) # Uses existing _get_nested_value
+            if value is not None:
+                values_to_combine.append(str(value))
+
+        combined_value = separator.join(values_to_combine)
+
+        # Uses existing _set_nested_value. If this is a simple stub, log won't actually be modified.
+        self._set_nested_value(log, target_field, combined_value)
+
+        # Log only if we intended to set a value.
+        # Actual modification depends on _set_nested_value implementation.
+        if values_to_combine: # Logged if there were values, even if combined_value is empty string
+             self.logger.info(f"EnhancedLogRouter._transform_field_combine: Combined fields into '{target_field}' with value '{combined_value}'.")
+
         return log
 
     async def _transform_value_map(self, log: Dict, transform: Dict, context: TransformationContext) -> Dict:

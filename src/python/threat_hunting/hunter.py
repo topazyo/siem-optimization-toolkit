@@ -8,6 +8,7 @@ import json
 import yaml
 import logging # Added import
 from src.python.query_optimization.kql_optimizer import KQLOptimizer # Added import
+from pathlib import Path # Added import
 
 @dataclass
 class ThreatHuntingResult:
@@ -39,7 +40,9 @@ class ThreatHunter:
     Advanced threat hunting system implementing custom detection logic.
     """
 
-    def __init__(self, workspace_id: str, kql_optimizer: KQLOptimizer): # KQLOptimizer can be used directly
+    def __init__(self, workspace_id: str, kql_optimizer: KQLOptimizer,
+                 hunting_queries_path: Optional[str] = None,
+                 detection_patterns_path: Optional[str] = None):
         """
         Initializes the ThreatHunter instance.
 
@@ -52,34 +55,64 @@ class ThreatHunter:
                                 will be performed.
             kql_optimizer (KQLOptimizer): An instance of the `KQLOptimizer` class,
                                           used to optimize hunting queries before execution.
+            hunting_queries_path (Optional[str], optional): Custom path to the hunting queries YAML file.
+                                                            Defaults to 'config/hunting_queries.yaml'.
+            detection_patterns_path (Optional[str], optional): Custom path to the detection patterns YAML file.
+                                                               Defaults to 'config/detection_patterns.yaml'.
 
         Initializes key attributes:
         - `workspace_id` (str): Stores the Log Analytics workspace ID.
         - `kql_optimizer` (KQLOptimizer): Stores the provided KQL optimizer instance.
-        - `hunting_queries` (Dict): A dictionary loaded from 'config/hunting_queries.yaml',
-                                    containing definitions for various hunting queries. Each
-                                    entry typically includes the KQL query, parameters,
-                                    scheduling info, and analysis parameters.
-        - `detection_patterns` (Dict): A dictionary loaded from 'config/detection_patterns.yaml',
-                                       containing patterns and indicators used in analyzing
-                                       query results for threats.
+        - `hunting_queries_path` (Optional[str]): Stores the custom path for hunting queries.
+        - `detection_patterns_path` (Optional[str]): Stores the custom path for detection patterns.
+        - `hunting_queries` (Dict): Loaded hunting queries.
+        - `detection_patterns` (Dict): Loaded detection patterns.
+        - `logger` (logging.Logger): A configured logger instance.
         """
         self.workspace_id = workspace_id
         self.kql_optimizer = kql_optimizer
+        self.hunting_queries_path = hunting_queries_path
+        self.detection_patterns_path = detection_patterns_path
+        self.logger = logging.getLogger(__name__)
         self.hunting_queries = self._load_hunting_queries()
         self.detection_patterns = self._load_detection_patterns()
         # It's good practice to also initialize a logger here, e.g.:
         self.logger = logging.getLogger(__name__) # Added logger initialization
 
+
     def _load_hunting_queries(self) -> Dict:
-        """Load custom hunting queries from configuration."""
-        with open('config/hunting_queries.yaml', 'r') as f:
-            return yaml.safe_load(f)
+        """
+        Load custom hunting queries from the specified path or default location.
+        Uses `self.hunting_queries_path` if set, otherwise defaults to 'config/hunting_queries.yaml'.
+        """
+        file_path = Path(self.hunting_queries_path) if self.hunting_queries_path else Path('config/hunting_queries.yaml')
+        self.logger.info(f"Loading hunting queries from: {file_path}")
+        if not file_path.exists():
+            self.logger.warning(f"Hunting queries file not found at {file_path}. Returning empty dict.")
+            return {}
+        try:
+            with open(file_path, 'r') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            self.logger.error(f"Error loading hunting queries from {file_path}: {e}")
+            return {}
 
     def _load_detection_patterns(self) -> Dict:
-        """Load threat detection patterns and indicators."""
-        with open('config/detection_patterns.yaml', 'r') as f:
-            return yaml.safe_load(f)
+        """
+        Load threat detection patterns from the specified path or default location.
+        Uses `self.detection_patterns_path` if set, otherwise defaults to 'config/detection_patterns.yaml'.
+        """
+        file_path = Path(self.detection_patterns_path) if self.detection_patterns_path else Path('config/detection_patterns.yaml')
+        self.logger.info(f"Loading detection patterns from: {file_path}")
+        if not file_path.exists():
+            self.logger.warning(f"Detection patterns file not found at {file_path}. Returning empty dict.")
+            return {} # Assuming patterns are a dict; if it's a list in YAML, return []. Let's stick to Dict for now.
+        try:
+            with open(file_path, 'r') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            self.logger.error(f"Error loading detection patterns from {file_path}: {e}")
+            return {}
 
     async def run_hunt(self, hunt_id: str) -> ThreatHuntingResult:
         """
@@ -149,9 +182,27 @@ class ThreatHunter:
     # --- Stubs for methods used by run_hunt ---
 
     async def _execute_query(self, query: str) -> List[Dict]:
-        """Stub for executing a KQL query for threat hunting."""
-        self.logger.warning("ThreatHunter._execute_query is a stub and not yet implemented.")
-        return []
+        """
+        Stub for executing a KQL query for threat hunting.
+        Returns mock data for threat hunting.
+        """
+        self.logger.info("ThreatHunter._execute_query: Returning MOCK data for threat hunt.")
+        return [
+            {
+                "TimeGenerated": datetime(2023, 10, 1, 10, 5, 0).isoformat(),
+                "EventID": 4625,
+                "Account": "victim_user",
+                "WorkstationName": "compromised_host",
+                "Details": "Failed login attempt with incorrect password."
+            },
+            {
+                "TimeGenerated": datetime(2023, 10, 1, 10, 6, 0).isoformat(),
+                "EventID": 4688,
+                "CommandLine": "powershell -enc verylongbase64string",
+                "ParentProcessName": "explorer.exe",
+                "User": "attacker_user"
+            }
+        ]
 
     def _determine_severity(self, findings: List[Dict]) -> str:
         """Stub for determining hunt severity based on findings."""

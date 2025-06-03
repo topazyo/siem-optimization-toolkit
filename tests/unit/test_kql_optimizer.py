@@ -67,11 +67,31 @@ class TestKQLOptimizer(unittest.TestCase):
         if optimization_details and optimization_details.get('changes'):
              self.assertTrue(all("Added join hint" not in change for change in optimization_details['changes']))
 
-    def test_optimize_where_clauses_stub(self):
-        query = "SecurityEvent | where field contains 'value'"
-        optimized_query, details = self.optimizer._optimize_where_clauses(query)
+    def test_optimize_where_clauses_finds_contains(self):
+        query = "SecurityEvent | where Details contains 'sensitive_info' | project TimeGenerated"
+        optimized_query, optimization_details = self.optimizer._optimize_where_clauses(query)
+        self.assertEqual(optimized_query, query) # Query itself is not changed
+        self.assertIsNotNone(optimization_details)
+        if optimization_details: # Added for type checking and safety
+            self.assertEqual(optimization_details['type'], 'where_optimization')
+            self.assertEqual(optimization_details['original_pattern'], 'contains')
+            self.assertEqual(optimization_details['suggested_alternatives'], ['has', 'in'])
+
+    def test_optimize_where_clauses_no_contains(self):
+        query = "SecurityEvent | where EventID == 4624 | project TimeGenerated"
+        optimized_query, optimization_details = self.optimizer._optimize_where_clauses(query)
         self.assertEqual(optimized_query, query)
-        self.assertIsNone(details)
+        self.assertIsNone(optimization_details)
+
+    def test_optimize_where_clauses_case_insensitive(self):
+        query = "SecurityEvent | where Details CoNtAiNs 'info'"
+        optimized_query, optimization_details = self.optimizer._optimize_where_clauses(query)
+        self.assertEqual(optimized_query, query) # Query itself is not changed
+        self.assertIsNotNone(optimization_details)
+        if optimization_details: # Added for type checking and safety
+            self.assertEqual(optimization_details['type'], 'where_optimization')
+            self.assertEqual(optimization_details['original_pattern'], 'contains')
+            self.assertEqual(optimization_details['suggested_alternatives'], ['has', 'in'])
 
     @patch('src.python.query_optimization.kql_optimizer.datetime')
     def test_run_query_benchmark_stub(self, mock_dt):

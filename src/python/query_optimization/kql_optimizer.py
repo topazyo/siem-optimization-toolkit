@@ -153,11 +153,25 @@ class KQLOptimizer:
 
         return query, optimization
 
+    def _reorder_joins(self, query: str) -> str:
+        """Placeholder for join reordering logic. Currently logs and returns original query."""
+        self.logger.warning("KQLOptimizer._reorder_joins is a placeholder and does not reorder joins yet.")
+        return query
+
     def _optimize_where_clauses(self, query: str) -> Tuple[str, Optional[Dict]]:
-        """Stub for optimizing where clauses in KQL query."""
-        self.logger.warning("KQLOptimizer._optimize_where_clauses is a stub and not yet implemented.")
-        # Return original query and no optimization details
-        return query, None
+        """Suggests optimizations for 'where' clauses, e.g., using 'has' instead of 'contains'."""
+        optimization_details = None
+        if 'contains' in query.lower(): # Case-insensitive check
+            self.logger.warning("KQLOptimizer._optimize_where_clauses: Found 'contains' operator. Suggesting 'has' or 'in'.")
+            optimization_details = {
+                'type': 'where_optimization',
+                'description': "Consider using 'has' or 'in' operators instead of 'contains' for better performance.",
+                'original_pattern': 'contains',
+                'suggested_alternatives': ['has', 'in']
+            }
+        # This method currently only suggests and does not modify the query.
+        # More complex parsing would be needed to safely auto-replace.
+        return query, optimization_details
 
     async def _estimate_performance_improvement(
         self, 

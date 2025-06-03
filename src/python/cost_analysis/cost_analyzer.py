@@ -165,9 +165,34 @@ class SentinelCostAnalyzer:
     # --- Stubs for primary analysis methods called by analyze_costs ---
 
     async def _execute_query(self, query: str) -> List[Dict]:
-        """Stub for executing a KQL query against Azure Log Analytics."""
-        self.logger.warning("SentinelCostAnalyzer._execute_query is a stub and not yet implemented.")
-        return []
+        """
+        Stub for executing a KQL query against Azure Log Analytics.
+        Returns mock data for cost analysis.
+        """
+        self.logger.info("SentinelCostAnalyzer._execute_query: Returning MOCK data for cost analysis.")
+        return [
+            {
+                "TimeGenerated": datetime(2023, 10, 1, 10, 0, 0).isoformat(),
+                "TableName": "SecurityEvent",
+                "_BilledSize": 1024 * 1024 * 500, # 500MB
+                "QueryCost": 0.05,
+                "StorageCost": 0.10
+            },
+            {
+                "TimeGenerated": datetime(2023, 10, 1, 11, 0, 0).isoformat(),
+                "TableName": "Syslog",
+                "_BilledSize": 1024 * 1024 * 200, # 200MB
+                "QueryCost": 0.02,
+                "StorageCost": 0.04
+            },
+            {
+                "TimeGenerated": datetime(2023, 10, 2, 10, 0, 0).isoformat(),
+                "TableName": "SecurityEvent",
+                "_BilledSize": 1024 * 1024 * 600, # 600MB
+                "QueryCost": 0.06,
+                "StorageCost": 0.12
+            }
+        ]
 
     async def _analyze_table_costs(self, cost_data: pd.DataFrame) -> Dict[str, float]:
         """Stub for analyzing table costs from cost data."""

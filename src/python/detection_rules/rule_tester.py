@@ -12,7 +12,7 @@ from .rule_engine import RuleEngine, RuleResult # Added import
 class RuleTester:
     """Testing framework for detection rules."""
 
-    def __init__(self, rule_engine: RuleEngine): # Now RuleEngine can be used directly
+    def __init__(self, rule_engine: RuleEngine, test_cases_dir: Optional[str] = None):
         """
         Initializes the RuleTester instance.
 
@@ -23,34 +23,38 @@ class RuleTester:
         Args:
             rule_engine (RuleEngine): An instance of the `RuleEngine` that will be
                                       used to evaluate rules against test cases.
+            test_cases_dir (Optional[str], optional): Path to the directory containing
+                                                      test case JSON files. If None,
+                                                      defaults to 'tests/detection_rules/test_cases'.
 
         Initializes key attributes:
         - `rule_engine` (RuleEngine): The provided rule engine instance.
+        - `test_cases_dir` (Optional[str]): The directory path for test cases.
         - `logger` (logging.Logger): A configured logger instance.
-        - `test_cases` (Dict[str, Dict]): A dictionary where keys are test case IDs
-                                          (derived from filenames) and values are the
-                                          loaded test case data (dictionaries) from
-                                          JSON files. Each test case typically defines
-                                          input data, parameters, and expected outcomes.
+        - `test_cases` (Dict[str, Dict]): Loaded test cases.
         """
         self.rule_engine = rule_engine
-        # Assuming logging and Path are imported, e.g.:
-        # import logging
-        # from pathlib import Path
-        self.logger = logging.getLogger(__name__) # type: ignore
+        self.test_cases_dir = test_cases_dir
+        self.logger = logging.getLogger(__name__)
         self.test_cases = self._load_test_cases()
 
     def _load_test_cases(self) -> Dict:
-        """Load test cases for rules."""
-        # Assuming 'tests/detection_rules/test_cases' is relative to where the script is run from,
-        # or an absolute path / path derived from a base config.
-        # For robustness, it might be better to make this path configurable or relative to this file's module.
-        # Example: test_cases_path = Path(__file__).parent.parent.parent / 'tests' / 'detection_rules' / 'test_cases'
-        test_cases_path = Path('tests/detection_rules/test_cases')
+        """
+        Load test cases from the specified directory or a default path.
+        Uses `self.test_cases_dir` if set, otherwise defaults to 'tests/detection_rules/test_cases'.
+        """
+        if self.test_cases_dir:
+            test_cases_path = Path(self.test_cases_dir)
+        else:
+            # Default path, consider making it relative to this file or a well-known base
+            # For now, keeping existing default relative to CWD or a discoverable 'tests' dir
+            test_cases_path = Path('tests/detection_rules/test_cases')
+
+        self.logger.info(f"Loading test cases from directory: {test_cases_path.resolve()}")
         test_cases = {}
 
         if not test_cases_path.is_dir():
-            self.logger.warning(f"Test cases directory not found: {test_cases_path}")
+            self.logger.warning(f"Test cases directory not found: {test_cases_path.resolve()}. Returning empty dict.")
             return test_cases
 
         for case_file in test_cases_path.glob('*.json'):

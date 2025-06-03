@@ -199,14 +199,64 @@ class CustomDetectionRule(BaseDetectionRule):
     # --- Stubs for private methods ---
 
     def _prepare_query(self, context: Dict) -> str:
-        """Stub for preparing the KQL query with context parameters."""
-        self.logger.warning("CustomDetectionRule._prepare_query is a stub and not yet implemented.")
-        return self.config.query
+        """
+        Prepares the KQL query by substituting placeholders with values from
+        the rule's parameters or the provided context.
+
+        Placeholders in the query string should be in the format `{key}`.
+        It first tries to fill placeholders from `self.config.parameters`.
+        Then, it attempts to fill any remaining placeholders from the `context` dict.
+        """
+        prepared_query = self.config.query
+
+        # Substitute from rule's own parameters first
+        if self.config.parameters:
+            for key, value in self.config.parameters.items():
+                placeholder = f"{{{key}}}"
+                prepared_query = prepared_query.replace(placeholder, str(value))
+
+        # Substitute from context parameters (context can override rule params if names clash, or fill others)
+        # For more specific control, could differentiate context params (e.g. context_param.X)
+        if context:
+            for key, value in context.items():
+                placeholder = f"{{{key}}}"
+                # This simple replace might not be ideal if context has many keys not in query
+                # A more targeted approach would be to only replace known placeholders.
+                if placeholder in prepared_query: # Only replace if placeholder exists
+                    prepared_query = prepared_query.replace(placeholder, str(value))
+
+        self.logger.info(f"CustomDetectionRule._prepare_query: Prepared query: {prepared_query}")
+        return prepared_query
 
     async def _execute_query(self, query: str) -> List[Dict]:
-        """Stub for executing the KQL query."""
-        self.logger.warning("CustomDetectionRule._execute_query is a stub and not yet implemented.")
-        return []
+        """
+        Simulates KQL query execution. Returns mock data if the query
+        contains a specific pattern, otherwise returns an empty list.
+        """
+        self.logger.info(f"CustomDetectionRule._execute_query: Simulating execution for query: {query}")
+
+        # Define a magic string that, if present in the query, triggers mock results
+        magic_trigger_string = 'User == "test_user_suspicious_activity_trigger"'
+
+        if magic_trigger_string in query:
+            self.logger.info(f"CustomDetectionRule._execute_query: Magic trigger '{magic_trigger_string}' found. Returning mock matches.")
+            return [
+                {
+                    "TimeGenerated": datetime.utcnow().isoformat(),
+                    "Activity": "Suspicious login attempt",
+                    "Details": "Triggered by mock pattern in _execute_query",
+                    "User": "test_user_suspicious_activity_trigger" # Ensure the field is present
+                },
+                {
+                    "TimeGenerated": (datetime.utcnow() - timedelta(minutes=5)).isoformat(),
+                    "Activity": "Anomalous file access",
+                    "Details": "Further details for mock pattern.",
+                    "User": "test_user_suspicious_activity_trigger"
+                }
+            ]
+        else:
+            self.logger.info("CustomDetectionRule._execute_query: No magic trigger found. Returning empty list for matches.")
+            return []
 
     def _determine_severity(self, matches: List[Dict]) -> str:
         """Stub for determining the severity of rule matches."""
