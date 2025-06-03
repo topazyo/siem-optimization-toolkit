@@ -6,6 +6,8 @@ import asyncio
 from dataclasses import dataclass
 import json
 import yaml
+import logging # Added import
+from src.python.query_optimization.kql_optimizer import KQLOptimizer # Added import
 
 @dataclass
 class ThreatHuntingResult:
@@ -37,7 +39,7 @@ class ThreatHunter:
     Advanced threat hunting system implementing custom detection logic.
     """
 
-    def __init__(self, workspace_id: str, kql_optimizer: 'KQLOptimizer'): # Type hint KQLOptimizer in quotes
+    def __init__(self, workspace_id: str, kql_optimizer: KQLOptimizer): # KQLOptimizer can be used directly
         """
         Initializes the ThreatHunter instance.
 
@@ -67,8 +69,7 @@ class ThreatHunter:
         self.hunting_queries = self._load_hunting_queries()
         self.detection_patterns = self._load_detection_patterns()
         # It's good practice to also initialize a logger here, e.g.:
-        # import logging
-        # self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__) # Added logger initialization
 
     def _load_hunting_queries(self) -> Dict:
         """Load custom hunting queries from configuration."""
@@ -126,24 +127,65 @@ class ThreatHunter:
 
             # Execute the optimized query
             # Assuming _execute_query is defined and handles actual KQL execution
-            results = await self._execute_query(optimized_query)
+        results = await self._execute_query(optimized_query) # Calls new stub
 
             # Analyze results
-            findings = self._analyze_findings(results, analysis_params)
+        findings = self._analyze_findings(results, analysis_params) # Calls stubs: _extract_entities, _calculate_risk_score, _collect_evidence
 
             return ThreatHuntingResult(
                 query_id=hunt_id,
                 timestamp=datetime.utcnow(),
                 findings=findings,
-                severity=self._determine_severity(findings),
-                confidence=self._calculate_confidence(findings),
-                related_entities=self._identify_related_entities(findings),
-                recommended_actions=self._generate_recommendations(findings)
+            severity=self._determine_severity(findings), # Calls new stub
+            confidence=self._calculate_confidence(findings), # Calls new stub
+            related_entities=self._identify_related_entities(findings), # Calls new stub
+            recommended_actions=self._generate_recommendations(findings) # Existing method
             )
 
         except Exception as e:
             self.logger.error(f"Error in threat hunt {hunt_id}: {str(e)}")
             raise
+
+    # --- Stubs for methods used by run_hunt ---
+
+    async def _execute_query(self, query: str) -> List[Dict]:
+        """Stub for executing a KQL query for threat hunting."""
+        self.logger.warning("ThreatHunter._execute_query is a stub and not yet implemented.")
+        return []
+
+    def _determine_severity(self, findings: List[Dict]) -> str:
+        """Stub for determining hunt severity based on findings."""
+        self.logger.warning("ThreatHunter._determine_severity is a stub and not yet implemented.")
+        return "Medium"
+
+    def _calculate_confidence(self, findings: List[Dict]) -> float:
+        """Stub for calculating hunt confidence based on findings."""
+        self.logger.warning("ThreatHunter._calculate_confidence is a stub and not yet implemented.")
+        return 0.5
+
+    def _identify_related_entities(self, findings: List[Dict]) -> List[Dict]:
+        """Stub for identifying related entities from findings."""
+        self.logger.warning("ThreatHunter._identify_related_entities is a stub and not yet implemented.")
+        return []
+
+    # --- Stubs for methods used by _analyze_findings ---
+
+    def _extract_entities(self, result: Dict) -> List[Dict]:
+        """Stub for extracting entities from a single query result."""
+        self.logger.warning("ThreatHunter._extract_entities is a stub and not yet implemented.")
+        return []
+
+    def _calculate_risk_score(self, result: Dict) -> float:
+        """Stub for calculating risk score for a single query result."""
+        self.logger.warning("ThreatHunter._calculate_risk_score is a stub and not yet implemented.")
+        return 0.0
+
+    def _collect_evidence(self, result: Dict) -> Dict:
+        """Stub for collecting evidence from a single query result."""
+        self.logger.warning("ThreatHunter._collect_evidence is a stub and not yet implemented.")
+        return {}
+
+    # --- Existing methods ---
 
     def _analyze_findings(self, results: List[Dict], analysis_params: Dict) -> List[Dict]:
         """Analyze query results for threat indicators."""
@@ -151,19 +193,19 @@ class ThreatHunter:
         
         for result in results:
             # Apply detection logic
-            if self._matches_threat_pattern(result, analysis_params):
+            if self._matches_threat_pattern(result, analysis_params): # Existing method
                 finding = {
                     'timestamp': result.get('TimeGenerated'),
                     'pattern_matched': result.get('pattern_type'),
-                    'entities': self._extract_entities(result),
-                    'risk_score': self._calculate_risk_score(result),
-                    'evidence': self._collect_evidence(result)
+                    'entities': self._extract_entities(result), # Calls new stub
+                    'risk_score': self._calculate_risk_score(result), # Calls new stub
+                    'evidence': self._collect_evidence(result) # Calls new stub
                 }
                 findings.append(finding)
 
         return findings
 
-    def _matches_threat_pattern(self, event: Dict, params: Dict) -> bool:
+    def _matches_threat_pattern(self, event: Dict, params: Dict) -> bool: # Existing method
         """Check if an event matches known threat patterns."""
         for pattern in self.detection_patterns:
             if all(
@@ -270,16 +312,28 @@ class ThreatHunter:
         """
 
         # Process results and generate report
-        detailed_findings = self._format_detailed_findings(results)
-        recommendations = self._compile_recommendations(results)
+        detailed_findings = self._format_detailed_findings(results) # Calls new stub
+        recommendations = self._compile_recommendations(results) # Calls new stub
 
         return report_template.format(
             timestamp=datetime.utcnow().isoformat(),
             total_hunts=len(results),
-            total_findings=sum(len(r.findings) for r in results.values()),
+            total_findings=sum(len(r.findings) for r in results.values() if hasattr(r, 'findings')), # Added safety for stubbed results
             high_severity_count=sum(
-                1 for r in results.values() if r.severity == 'high'
+                1 for r in results.values() if hasattr(r, 'severity') and r.severity == 'high' # Added safety
             ),
             detailed_findings=detailed_findings,
             recommendations=recommendations
         )
+
+    # --- Stubs for report generation helpers ---
+
+    def _format_detailed_findings(self, results: Dict[str, 'ThreatHuntingResult']) -> str:
+        """Stub for formatting detailed hunt findings into a string."""
+        self.logger.warning("ThreatHunter._format_detailed_findings is a stub and not yet implemented.")
+        return "Detailed findings not available."
+
+    def _compile_recommendations(self, results: Dict[str, 'ThreatHuntingResult']) -> str:
+        """Stub for compiling recommendations from hunt results into a string."""
+        self.logger.warning("ThreatHunter._compile_recommendations is a stub and not yet implemented.")
+        return "Recommendations not available."

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
+import logging # Added import
 
 @dataclass
 class DashboardMetrics:
@@ -221,11 +222,28 @@ class SentinelDashboard:
 
         if format == 'html':
             # _generate_html_dashboard would use self.current_metrics or the full dashboard dict
-            return self._generate_html_dashboard()
+            return self._generate_html_dashboard() # Calls new stub
         elif format == 'pdf':
             # _generate_pdf_dashboard would use self.current_metrics or the full dashboard dict
             # This is a placeholder for future PDF generation logic
-            self.logger.warning("PDF export is not fully implemented yet.") # Assuming logger is initialized
-            return await self._generate_pdf_dashboard() # Assuming this method exists
+            self.logger.warning("PDF export is not fully implemented yet.")
+            return await self._generate_pdf_dashboard() # Calls new stub
         else:
             raise ValueError(f"Unsupported format: {format}")
+
+    # --- Stubs for private methods ---
+
+    def _create_health_section(self) -> Dict:
+        """Stub for creating the system health section of the dashboard."""
+        self.logger.warning("SentinelDashboard._create_health_section is a stub and not yet implemented.")
+        return {'title': 'System Health', 'charts': {}, 'summary_metrics': {'status': 'Not Implemented'}}
+
+    def _generate_html_dashboard(self) -> str:
+        """Stub for generating an HTML representation of the dashboard."""
+        self.logger.warning("SentinelDashboard._generate_html_dashboard is a stub and not yet implemented.")
+        return "<html><body><h1>Dashboard Not Implemented</h1></body></html>"
+
+    async def _generate_pdf_dashboard(self) -> str:
+        """Stub for generating a PDF representation of the dashboard."""
+        self.logger.warning("SentinelDashboard._generate_pdf_dashboard is a stub and not yet implemented.")
+        return "" # Returning empty string for PDF stub

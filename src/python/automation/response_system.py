@@ -6,6 +6,7 @@ from datetime import datetime
 import json
 import yaml
 from dataclasses import dataclass
+import logging # Added import
 
 @dataclass
 class ThreatResponse:

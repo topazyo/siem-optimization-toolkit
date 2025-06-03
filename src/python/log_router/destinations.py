@@ -10,6 +10,8 @@ from azure.eventhub.aio import EventHubProducerClient
 from google.cloud import storage
 import json
 import logging
+from datetime import datetime # Added import
+from aiokafka import AIOKafkaProducer # Added import
 
 class DestinationHandlers:
     """Handlers for various log destinations."""

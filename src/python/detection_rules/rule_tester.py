@@ -5,11 +5,14 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 import pandas as pd
+import logging # Added import
+from pathlib import Path # Added import
+from .rule_engine import RuleEngine, RuleResult # Added import
 
 class RuleTester:
     """Testing framework for detection rules."""
 
-    def __init__(self, rule_engine: 'RuleEngine'): # Use quotes for type hint if RuleEngine is in the same file and defined later, or for circular deps
+    def __init__(self, rule_engine: RuleEngine): # Now RuleEngine can be used directly
         """
         Initializes the RuleTester instance.
 
@@ -39,8 +42,16 @@ class RuleTester:
 
     def _load_test_cases(self) -> Dict:
         """Load test cases for rules."""
+        # Assuming 'tests/detection_rules/test_cases' is relative to where the script is run from,
+        # or an absolute path / path derived from a base config.
+        # For robustness, it might be better to make this path configurable or relative to this file's module.
+        # Example: test_cases_path = Path(__file__).parent.parent.parent / 'tests' / 'detection_rules' / 'test_cases'
         test_cases_path = Path('tests/detection_rules/test_cases')
         test_cases = {}
+
+        if not test_cases_path.is_dir():
+            self.logger.warning(f"Test cases directory not found: {test_cases_path}")
+            return test_cases
 
         for case_file in test_cases_path.glob('*.json'):
             with open(case_file, 'r') as f:
@@ -221,6 +232,18 @@ class RuleTester:
             validation['details']['confidence'] = False
 
         return validation
+
+    # --- Stubs for report generation helpers ---
+
+    def _format_test_results(self, test_cases: List[Dict]) -> str:
+        """Stub for formatting detailed test results into a string."""
+        self.logger.warning("RuleTester._format_test_results is a stub and not yet implemented.")
+        return "Detailed test results not available."
+
+    def _calculate_performance_metrics(self, test_cases: List[Dict]) -> str:
+        """Stub for calculating and formatting performance metrics from test cases."""
+        self.logger.warning("RuleTester._calculate_performance_metrics is a stub and not yet implemented.")
+        return "Performance metrics not available."
 
     async def generate_test_report(self, test_results: Dict) -> str:
         """
