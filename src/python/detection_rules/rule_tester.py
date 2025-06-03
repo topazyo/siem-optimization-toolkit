@@ -5,19 +5,57 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 import pandas as pd
+import logging # Added import
+from pathlib import Path # Added import
+from .rule_engine import RuleEngine, RuleResult # Added import
 
 class RuleTester:
     """Testing framework for detection rules."""
 
-    def __init__(self, rule_engine: RuleEngine):
+    def __init__(self, rule_engine: RuleEngine, test_cases_dir: Optional[str] = None):
+        """
+        Initializes the RuleTester instance.
+
+        This constructor takes a RuleEngine instance, sets up logging, and loads
+        all available test cases from JSON files located in a predefined path
+        (e.g., 'tests/detection_rules/test_cases').
+
+        Args:
+            rule_engine (RuleEngine): An instance of the `RuleEngine` that will be
+                                      used to evaluate rules against test cases.
+            test_cases_dir (Optional[str], optional): Path to the directory containing
+                                                      test case JSON files. If None,
+                                                      defaults to 'tests/detection_rules/test_cases'.
+
+        Initializes key attributes:
+        - `rule_engine` (RuleEngine): The provided rule engine instance.
+        - `test_cases_dir` (Optional[str]): The directory path for test cases.
+        - `logger` (logging.Logger): A configured logger instance.
+        - `test_cases` (Dict[str, Dict]): Loaded test cases.
+        """
         self.rule_engine = rule_engine
+        self.test_cases_dir = test_cases_dir
         self.logger = logging.getLogger(__name__)
         self.test_cases = self._load_test_cases()
 
     def _load_test_cases(self) -> Dict:
-        """Load test cases for rules."""
-        test_cases_path = Path('tests/detection_rules/test_cases')
+        """
+        Load test cases from the specified directory or a default path.
+        Uses `self.test_cases_dir` if set, otherwise defaults to 'tests/detection_rules/test_cases'.
+        """
+        if self.test_cases_dir:
+            test_cases_path = Path(self.test_cases_dir)
+        else:
+            # Default path, consider making it relative to this file or a well-known base
+            # For now, keeping existing default relative to CWD or a discoverable 'tests' dir
+            test_cases_path = Path('tests/detection_rules/test_cases')
+
+        self.logger.info(f"Loading test cases from directory: {test_cases_path.resolve()}")
         test_cases = {}
+
+        if not test_cases_path.is_dir():
+            self.logger.warning(f"Test cases directory not found: {test_cases_path.resolve()}. Returning empty dict.")
+            return test_cases
 
         for case_file in test_cases_path.glob('*.json'):
             with open(case_file, 'r') as f:
@@ -31,14 +69,36 @@ class RuleTester:
         test_case_id: Optional[str] = None
     ) -> Dict:
         """
-        Test a specific rule against test cases.
-        
+        Asynchronously tests a specific detection rule against one or all applicable test cases.
+
+        It loads test case data (input logs, parameters) and expected outcomes.
+        For each relevant test case, it uses the `rule_engine` to evaluate the rule
+        and then compares the actual results against the expected results.
+
         Args:
-            rule_id (str): Rule to test
-            test_case_id (Optional[str]): Specific test case to run
-            
+            rule_id (str): The unique identifier of the detection rule to be tested.
+            test_case_id (Optional[str], optional): If provided, only this specific
+                                                    test case will be run for the rule.
+                                                    Otherwise, all test cases applicable
+                                                    to the rule (based on 'applicable_rules'
+                                                    in test case files) are executed.
+                                                    Defaults to None.
+
         Returns:
-            Dict: Test results
+            Dict: A dictionary containing the test results, structured as follows:
+                  - 'rule_id' (str): The ID of the rule that was tested.
+                  - 'timestamp' (str): ISO format timestamp of when the tests were run.
+                  - 'test_cases' (List[Dict]): A list of results for each executed test case.
+                    Each entry includes:
+                      - 'test_case_id' (str): Identifier of the test case.
+                      - 'description' (str): Description of the test case.
+                      - 'passed' (bool): True if the test case passed, False otherwise.
+                      - 'details' (Dict): Further details on validation, like comparison
+                                          of matches, severity, confidence, or error info.
+                  - 'summary' (Dict): A summary of the test run for this rule, including:
+                      - 'total_tests' (int): Total number of test cases run.
+                      - 'passed' (int): Number of test cases that passed.
+                      - 'failed' (int): Number of test cases that failed.
         """
         results = {
             'rule_id': rule_id,
@@ -51,7 +111,40 @@ class RuleTester:
             }
         }
 
-        test_cases = (
+        # Determine which test cases to run
+        applicable_test_cases = {}
+        if test_case_id:
+            if test_case_id in self.test_cases:
+                applicable_test_cases = {test_case_id: self.test_cases[test_case_id]}
+            else:
+                self.logger.warning(f"Test case ID '{test_case_id}' not found.")
+        else:
+            # Filter all loaded test cases for those applicable to the rule_id
+            for tc_id, case_data in self.test_cases.items():
+                if rule_id in case_data.get('applicable_rules', []):
+                    applicable_test_cases[tc_id] = case_data
+
+        test_cases_to_run = applicable_test_cases
+
+        for case_id, case in test_cases_to_run.items():
+            # Ensure 'applicable_rules' check is done if not filtering by specific test_case_id initially
+            # This check is now implicitly handled by how `test_cases_to_run` is populated.
+            # if rule_id in case.get('applicable_rules', []): # This might be redundant now
+            test_result = await self._run_test_case(rule_id, case)
+            results['test_cases'].append(test_result)
+            results['summary']['total_tests'] += 1
+            if test_result['passed']:
+                results['summary']['passed'] += 1
+            else:
+                results['summary']['failed'] += 1
+
+        # If a specific test_case_id was provided but wasn't applicable or found,
+        # the summary might show 0 tests. This behavior might need adjustment
+        # based on desired outcome (e.g., raise error if specific test case not found/applicable).
+
+        return results
+
+    async def _run_test_case(self, rule_id: str, test_case: Dict) -> Dict:
             {test_case_id: self.test_cases[test_case_id]}
             if test_case_id
             else self.test_cases
@@ -144,8 +237,41 @@ class RuleTester:
 
         return validation
 
+    # --- Stubs for report generation helpers ---
+
+    def _format_test_results(self, test_cases: List[Dict]) -> str:
+        """Stub for formatting detailed test results into a string."""
+        self.logger.warning("RuleTester._format_test_results is a stub and not yet implemented.")
+        return "Detailed test results not available."
+
+    def _calculate_performance_metrics(self, test_cases: List[Dict]) -> str:
+        """Stub for calculating and formatting performance metrics from test cases."""
+        self.logger.warning("RuleTester._calculate_performance_metrics is a stub and not yet implemented.")
+        return "Performance metrics not available."
+
     async def generate_test_report(self, test_results: Dict) -> str:
-        """Generate detailed test report."""
+        """
+        Asynchronously generates a formatted string report from rule test results.
+
+        The report is typically structured in Markdown or HTML, providing a summary
+        of the test run, detailed results for each test case, and any relevant
+        performance metrics observed during testing.
+
+        Args:
+            test_results (Dict): The dictionary returned by the `test_rule` method,
+                                 containing the results of a test run for a specific rule.
+
+        Returns:
+            str: A formatted string (e.g., Markdown) representing the test report.
+                 Key sections include:
+                 - Summary: Total tests, passed, failed, success rate.
+                 - Detailed Results: A breakdown for each test case, including its ID,
+                   description, pass/fail status, and any specific validation details
+                   or errors.
+                 - Performance Metrics: (If available and calculated) Metrics about
+                   the rule's performance during the tests, such as average
+                   execution time.
+        """
         report_template = """
         # Detection Rule Test Report
         Generated: {timestamp}

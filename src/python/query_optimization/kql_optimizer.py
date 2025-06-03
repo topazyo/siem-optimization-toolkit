@@ -11,10 +11,17 @@ import aiohttp
 
 @dataclass
 class QueryPerformanceMetrics:
-    execution_time: float
-    data_scanned: float
-    result_count: int
-    resource_utilization: float
+    """
+    Represents performance metrics for a KQL query execution.
+
+    This dataclass is used to store and pass around various performance
+    indicators of a KQL query, allowing for analysis and comparison.
+    """
+    execution_time: float  # Time taken for the query to execute, in seconds.
+    data_scanned: float    # Amount of data scanned by the query, in GB or other relevant unit.
+    result_count: int      # Number of records/rows returned by the query.
+    resource_utilization: float # A metric representing the computational resources consumed
+                               # (e.g., CPU, memory) by the query, often a percentage or custom score.
 
 class KQLOptimizer:
     """
@@ -22,6 +29,25 @@ class KQLOptimizer:
     """
 
     def __init__(self, workspace_id: str, subscription_id: str):
+        """
+        Initializes the KQLOptimizer instance.
+
+        Args:
+            workspace_id (str): The Azure Log Analytics workspace ID against which
+                                queries will be optimized and executed.
+            subscription_id (str): The Azure subscription ID containing the workspace.
+
+        Initializes key attributes:
+        - `workspace_id` (str): Stores the Log Analytics workspace ID.
+        - `subscription_id` (str): Stores the Azure subscription ID.
+        - `logger` (logging.Logger): A configured logger instance for logging messages.
+        - `performance_baseline` (dict): A dictionary to store baseline performance
+                                         metrics for queries, potentially used for
+                                         tracking improvements over time.
+        - `query_patterns` (dict): A dictionary containing predefined KQL query patterns
+                                   and their optimization suggestions, loaded by
+                                   `_load_query_patterns`.
+        """
         self.workspace_id = workspace_id
         self.subscription_id = subscription_id
         self.logger = logging.getLogger(__name__)
@@ -126,6 +152,26 @@ class KQLOptimizer:
             optimization['changes'].append('Added join hint for better performance')
 
         return query, optimization
+
+    def _reorder_joins(self, query: str) -> str:
+        """Placeholder for join reordering logic. Currently logs and returns original query."""
+        self.logger.warning("KQLOptimizer._reorder_joins is a placeholder and does not reorder joins yet.")
+        return query
+
+    def _optimize_where_clauses(self, query: str) -> Tuple[str, Optional[Dict]]:
+        """Suggests optimizations for 'where' clauses, e.g., using 'has' instead of 'contains'."""
+        optimization_details = None
+        if 'contains' in query.lower(): # Case-insensitive check
+            self.logger.warning("KQLOptimizer._optimize_where_clauses: Found 'contains' operator. Suggesting 'has' or 'in'.")
+            optimization_details = {
+                'type': 'where_optimization',
+                'description': "Consider using 'has' or 'in' operators instead of 'contains' for better performance.",
+                'original_pattern': 'contains',
+                'suggested_alternatives': ['has', 'in']
+            }
+        # This method currently only suggests and does not modify the query.
+        # More complex parsing would be needed to safely auto-replace.
+        return query, optimization_details
 
     async def _estimate_performance_improvement(
         self, 
