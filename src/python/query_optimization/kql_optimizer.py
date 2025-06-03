@@ -11,10 +11,17 @@ import aiohttp
 
 @dataclass
 class QueryPerformanceMetrics:
-    execution_time: float
-    data_scanned: float
-    result_count: int
-    resource_utilization: float
+    """
+    Represents performance metrics for a KQL query execution.
+
+    This dataclass is used to store and pass around various performance
+    indicators of a KQL query, allowing for analysis and comparison.
+    """
+    execution_time: float  # Time taken for the query to execute, in seconds.
+    data_scanned: float    # Amount of data scanned by the query, in GB or other relevant unit.
+    result_count: int      # Number of records/rows returned by the query.
+    resource_utilization: float # A metric representing the computational resources consumed
+                               # (e.g., CPU, memory) by the query, often a percentage or custom score.
 
 class KQLOptimizer:
     """
@@ -22,6 +29,25 @@ class KQLOptimizer:
     """
 
     def __init__(self, workspace_id: str, subscription_id: str):
+        """
+        Initializes the KQLOptimizer instance.
+
+        Args:
+            workspace_id (str): The Azure Log Analytics workspace ID against which
+                                queries will be optimized and executed.
+            subscription_id (str): The Azure subscription ID containing the workspace.
+
+        Initializes key attributes:
+        - `workspace_id` (str): Stores the Log Analytics workspace ID.
+        - `subscription_id` (str): Stores the Azure subscription ID.
+        - `logger` (logging.Logger): A configured logger instance for logging messages.
+        - `performance_baseline` (dict): A dictionary to store baseline performance
+                                         metrics for queries, potentially used for
+                                         tracking improvements over time.
+        - `query_patterns` (dict): A dictionary containing predefined KQL query patterns
+                                   and their optimization suggestions, loaded by
+                                   `_load_query_patterns`.
+        """
         self.workspace_id = workspace_id
         self.subscription_id = subscription_id
         self.logger = logging.getLogger(__name__)

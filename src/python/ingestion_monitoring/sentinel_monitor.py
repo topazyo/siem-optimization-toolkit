@@ -24,6 +24,27 @@ class SentinelMonitor:
     """
 
     def __init__(self, workspace_id: str, subscription_id: str, config_path: str = None):
+        """
+        Initializes the SentinelMonitor instance.
+
+        Args:
+            workspace_id (str): The Azure Log Analytics workspace ID where Sentinel is enabled.
+            subscription_id (str): The Azure subscription ID containing the workspace.
+            config_path (str, optional): Path to a YAML configuration file.
+                                         If not provided, default settings are used.
+
+        Initializes key attributes:
+        - `workspace_id`: Stores the Log Analytics workspace ID.
+        - `subscription_id`: Stores the Azure subscription ID.
+        - `credential`: An instance of `DefaultAzureCredential` for authentication.
+        - `logger`: A configured logger instance for logging messages.
+        - `config`: A dictionary containing configuration settings, loaded from
+                    `config_path` or defaults.
+        - `la_client`: An instance of `LogAnalyticsManagementClient` for interacting
+                       with Log Analytics.
+        - `monitor_client`: An instance of `MonitorManagementClient` for interacting
+                            with Azure Monitor.
+        """
         self.workspace_id = workspace_id
         self.subscription_id = subscription_id
         self.credential = DefaultAzureCredential()
@@ -86,13 +107,30 @@ class SentinelMonitor:
 
     async def analyze_ingestion_patterns(self, days_lookback: int = 7) -> Dict:
         """
-        Analyze log ingestion patterns and provide optimization recommendations.
-        
+        Asynchronously analyzes log ingestion patterns over a specified period
+        and provides optimization recommendations.
+
         Args:
-            days_lookback (int): Number of days to analyze
-            
+            days_lookback (int): The number of past days to include in the analysis,
+                                 starting from the current UTC time. Defaults to 7 days.
+
         Returns:
-            Dict containing analysis results and recommendations
+            Dict: A dictionary containing the analysis results and recommendations.
+                  The structure includes:
+                  - 'analysis_period' (dict): Start and end ISO format timestamps for the analysis.
+                  - 'total_volume_gb' (float): Total ingested data volume in GB.
+                  - 'daily_patterns' (dict): Dictionary with dates as keys and daily
+                                            ingestion volume (GB) as values.
+                  - 'peak_hours' (list): List of the top 3 peak ingestion hours (0-23).
+                  - 'recommendations' (list): A list of dictionaries, where each dictionary
+                                              represents a specific recommendation.
+                                              Recommendations can include types like
+                                              'volume_reduction' or 'table_optimization',
+                                              severity, description, and suggested actions.
+                  - 'cost_impact' (dict): An analysis of the current estimated monthly cost
+                                          and potential savings from optimizations.
+                                          Includes 'current_monthly_cost' and
+                                          'projected_savings'.
         """
         try:
             start_time = datetime.utcnow() - timedelta(days=days_lookback)
@@ -239,13 +277,23 @@ class SentinelMonitor:
 
     def optimize_retention_policies(self, current_policies: Dict) -> Dict:
         """
-        Generate optimized retention policies based on data analysis.
-        
+        Generates optimized retention policies for different data tables based on analysis.
+
         Args:
-            current_policies (Dict): Current retention configuration
-            
+            current_policies (Dict): A dictionary where keys are table names (str)
+                                     and values are their current retention periods in days (int).
+                                     Example: {'SecurityEvent': 90, 'Syslog': 30}
+
         Returns:
-            Dict containing optimized policy recommendations
+            Dict: A dictionary where keys are table names (str). Each value is a
+                  dictionary containing:
+                  - 'current_retention' (int): The original retention period in days.
+                  - 'recommended_retention' (int): The newly recommended retention period
+                                                   in days, based on analysis.
+                  - 'storage_tier' (str): The recommended storage tier (e.g., 'Hot',
+                                          'Cold') for the table.
+                  - 'estimated_savings' (float): Estimated cost savings (currency/month)
+                                                 if the recommended retention is applied.
         """
         optimized_policies = {}
         
@@ -273,7 +321,18 @@ class SentinelMonitor:
         return optimized_policies
 
     async def generate_report(self, analysis_results: Dict) -> str:
-        """Generate a comprehensive HTML report from analysis results."""
+        """
+        Asynchronously generates a comprehensive HTML report from analysis results.
+
+        Args:
+            analysis_results (Dict): The results dictionary obtained from the
+                                     `analyze_ingestion_patterns` method. This dictionary
+                                     contains all the data needed to populate the report.
+
+        Returns:
+            str: An HTML string representing the generated report. This can be saved
+                 to an .html file or displayed in a web browser.
+        """
         template = """
         <html>
             <head>
@@ -298,7 +357,22 @@ class SentinelMonitor:
         )
 
     async def export_results(self, results: Dict, format: str = 'json') -> None:
-        """Export analysis results to specified format."""
+        """
+        Asynchronously exports the provided analysis results to a file.
+
+        The output filename will be automatically generated with a timestamp
+        (e.g., sentinel_analysis_YYYYMMDD_HHMMSS.format).
+
+        Args:
+            results (Dict): The dictionary containing the data to be exported.
+                            Typically, this is the output from methods like
+                            `analyze_ingestion_patterns` or `optimize_retention_policies`.
+            format (str, optional): The desired output format. Supported formats are
+                                    'json' and 'csv'. Defaults to 'json'.
+
+        Raises:
+            ValueError: If an unsupported format is specified.
+        """
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         filename = f'sentinel_analysis_{timestamp}.{format}'
         

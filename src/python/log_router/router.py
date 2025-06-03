@@ -11,12 +11,24 @@ from dataclasses import dataclass
 
 @dataclass
 class LogRoute:
-    source: str
-    destination: str
-    filters: List[Dict]
-    transformations: List[Dict]
-    retention: int
-    priority: int
+    """
+    Defines a specific rule for routing logs from a source to a destination.
+
+    This dataclass encapsulates all the criteria and actions for a single
+    log routing path, including where the logs come from, where they go,
+    conditions they must meet (filters), modifications to apply
+    (transformations), how long they should be kept, and the rule's priority.
+    """
+    source: str  # Identifier for the source of the logs (e.g., "FirewallEvents", "SyslogStream").
+    destination: str  # Identifier for the target system or storage (e.g., "AzureBlobStorage", "Splunk").
+    filters: List[Dict]  # A list of filter conditions. Each dictionary defines a filter,
+                         # e.g., {"field": "EventID", "operator": "equals", "value": 4625}.
+                         # Logs must pass all filters to be routed by this rule.
+    transformations: List[Dict]  # A list of transformations to apply to the log before sending to the destination.
+                                 # e.g., {"type": "rename_field", "old_name": "src_ip", "new_name": "SourceIpAddress"}.
+    retention: int  # Retention period in days for logs sent via this route to the destination.
+    priority: int  # A numerical priority for the rule. Lower numbers typically indicate higher priority.
+                   # Used to resolve conflicts if a log matches multiple routes.
 
 class LogRouter:
     """
@@ -24,6 +36,27 @@ class LogRouter:
     """
 
     def __init__(self, config_path: str = 'config/log_router.yaml'):
+        """
+        Initializes the LogRouter instance.
+
+        This involves setting up logging, loading the router configuration from a YAML file,
+        initializing routes based on the configuration, and preparing a dictionary to store
+        routing metrics.
+
+        Args:
+            config_path (str, optional): The file system path to the router's
+                                        configuration YAML file.
+                                        Defaults to 'config/log_router.yaml'.
+
+        Initializes key attributes:
+        - `logger` (logging.Logger): A configured logger instance.
+        - `config` (Dict): The raw configuration loaded from the YAML file.
+        - `routes` (Dict[str, LogRoute]): A dictionary storing `LogRoute` objects,
+                                          typically keyed by source or a unique route ID,
+                                          parsed from the `config`.
+        - `metrics` (Dict): A dictionary to store runtime metrics about log routing,
+                            such as counts and volumes per destination.
+        """
         self.logger = logging.getLogger(__name__)
         self.config = self._load_config(config_path)
         self.routes: Dict[str, LogRoute] = {}
@@ -47,13 +80,27 @@ class LogRouter:
 
     async def route_logs(self, logs: List[Dict]) -> Dict[str, List[Dict]]:
         """
-        Route logs based on configured rules.
-        
+        Asynchronously routes a list of log entries based on configured rules.
+
+        For each log entry, the method attempts to find a matching route by
+        evaluating filters. If a route is found, specified transformations are
+        applied to the log. The log is then added to a list associated with its
+        determined destination. Routing metrics (e.g., log count, volume) are
+        updated for each successfully routed log.
+
         Args:
-            logs (List[Dict]): Logs to route
-            
+            logs (List[Dict]): A list of dictionaries, where each dictionary
+                               represents a single log entry. Each log entry should
+                               contain fields that can be used by the routing rules'
+                               filters and transformations (e.g., a 'source' field
+                               to match against `LogRoute.source`).
+
         Returns:
-            Dict[str, List[Dict]]: Routed logs by destination
+            Dict[str, List[Dict]]: A dictionary where keys are destination names (str)
+                                   and values are lists of log dictionaries (List[Dict])
+                                   that have been routed to that destination. Logs that
+                                   do not match any route or fail during processing may be
+                                   omitted or logged as errors.
         """
         routed_logs = {}
         
@@ -165,7 +212,17 @@ class LogRouter:
         self.metrics[timestamp][destination]['sources'].add(log.get('source'))
 
     async def export_metrics(self) -> None:
-        """Export routing metrics."""
+        """
+        Asynchronously exports collected routing metrics to a JSON file.
+
+        The metrics, stored in the `self.metrics` attribute, are serialized to JSON.
+        This typically includes counts of logs, data volumes, and unique sources
+        per destination, aggregated over time windows. The output file is named
+        with a timestamp to ensure uniqueness and is placed in the 'metrics/' directory.
+        Sets within the metrics (like 'sources') are converted to lists for JSON compatibility.
+
+        The file will be named `metrics/routing_metrics_YYYYMMDD_HHMMSS.json`.
+        """
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         metrics_file = f'metrics/routing_metrics_{timestamp}.json'
         
