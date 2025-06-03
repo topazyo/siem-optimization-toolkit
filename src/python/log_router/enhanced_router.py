@@ -1,6 +1,6 @@
 # src/python/log_router/enhanced_router.py
 
-from typing import Dict, List, Optional, Union, Callable
+from typing import Dict, List, Optional, Union, Callable, Any # Added Any
 from dataclasses import dataclass, field
 import asyncio
 import aiokafka
@@ -16,21 +16,49 @@ from collections import defaultdict
 
 @dataclass
 class RoutingRule:
-    name: str
-    conditions: List[Dict]
-    transformations: List[Dict]
-    destination: Dict
-    priority: int
-    enabled: bool = True
-    metadata: Dict = field(default_factory=dict)
-    performance_metrics: Dict = field(default_factory=dict)
+    """
+    Defines an advanced rule for routing and transforming logs.
+
+    This dataclass encapsulates the logic for a single routing path, including
+    its unique name, conditions for matching logs, a series of transformations
+    to apply, the target destination, priority for execution order,
+    operational status (enabled/disabled), and associated metadata and
+    performance metrics.
+    """
+    name: str  # Unique name for the routing rule (e.g., "PII_Scrubbing_and_Archive").
+    conditions: List[Dict]  # A list of conditions that a log must meet to be processed by this rule.
+                             # Each dictionary defines a condition, e.g.,
+                             # {"field": "UserData.Email", "operator": "exists"}.
+    transformations: List[Dict]  # A list of transformation steps to apply to the log.
+                                 # Each dictionary defines a transformation, e.g.,
+                                 # {"type": "field_mask", "field": "UserData.SSN"}.
+    destination: Dict  # Configuration for the destination where the transformed log should be sent.
+                       # e.g., {"type": "AzureBlob", "container": "archived-logs"}.
+    priority: int  # Numerical priority of the rule. Lower numbers indicate higher priority.
+                   # Rules are typically evaluated in ascending order of priority.
+    enabled: bool = True  # Flag indicating whether the rule is currently active.
+    metadata: Dict = field(default_factory=dict)  # Arbitrary metadata associated with the rule,
+                                               # e.g., {"owner": "compliance_team", "version": "1.2"}.
+    performance_metrics: Dict = field(default_factory=dict)  # Dictionary to store runtime performance metrics
+                                                          # for this specific rule, e.g.,
+                                                          # {"processed_logs": 1000, "error_count": 5}.
 
 @dataclass
 class TransformationContext:
-    original_log: Dict
-    transformed_log: Dict
-    route: RoutingRule
-    metadata: Dict = field(default_factory=dict)
+    """
+    Holds data and state during the log transformation process for a single log entry.
+
+    This dataclass is passed through the transformation pipeline for a log,
+    allowing different transformation steps to access the original log, the
+    log as it's being modified, details of the routing rule being applied,
+    and any other relevant metadata accumulated during processing.
+    """
+    original_log: Dict  # The log entry as it was received, before any transformations.
+    transformed_log: Dict  # The log entry as it is being modified by transformation steps.
+                           # This field is updated in place by transformers.
+    route: RoutingRule  # The `RoutingRule` instance that matched the log and triggered this transformation.
+    metadata: Dict = field(default_factory=dict)  # Arbitrary metadata that can be passed between transformation
+                                               # steps or used to influence transformation logic.
 
 class EnhancedLogRouter:
     """
@@ -38,6 +66,34 @@ class EnhancedLogRouter:
     """
 
     def __init__(self, config_path: str):
+        """
+        Initializes the EnhancedLogRouter instance.
+
+        This constructor sets up logging, loads the main configuration from the
+        specified YAML file, and then initializes various components of the router
+        including rules, transformers, destinations, metrics collection, and caching.
+
+        Args:
+            config_path (str): The file system path to the main configuration
+                               YAML file for the router. This file defines rules,
+                               transformer settings, and destination details.
+
+        Initializes key attributes:
+        - `logger` (logging.Logger): A configured logger instance.
+        - `config` (Dict): The raw configuration loaded from `config_path`.
+        - `rules` (List[RoutingRule]): A list to store `RoutingRule` instances,
+                                       parsed and validated from the config.
+        - `transformers` (Dict[str, Callable]): A dictionary mapping transformation
+                                                types (str) to their implementing
+                                                callable functions.
+        - `destinations` (Dict[str, Callable]): A dictionary mapping destination
+                                                types (str) to functions responsible
+                                                for sending logs to those destinations.
+        - `metrics` (defaultdict): A nested dictionary for collecting various
+                                   runtime metrics about log processing.
+        - `cache` (Dict): A generic cache that can be used by various components,
+                          for example, by GeoIP enrichment to store recent lookups.
+        """
         self.logger = logging.getLogger(__name__)
         self.config = self._load_config(config_path)
         self.rules: List[RoutingRule] = []
@@ -55,9 +111,17 @@ class EnhancedLogRouter:
         self._setup_destinations()
         self._initialize_monitoring()
 
+    # --- Stubs for initialization helpers ---
+    def _load_config(self, config_path: str) -> Dict:
+        """Stub for loading router configuration from a YAML file."""
+        self.logger.warning("EnhancedLogRouter._load_config is a stub and not yet implemented.")
+        return {'rules': []}
+
     def _load_rules(self):
         """Load and validate routing rules."""
-        for rule_config in self.config['rules']:
+        # Note: This method calls _validate_rule, which is now a stub.
+        # The original logic might need adjustment if it relied on _validate_rule's behavior.
+        for rule_config in self.config.get('rules', []): # Use .get for safety if config is from stub
             try:
                 rule = RoutingRule(**rule_config)
                 self._validate_rule(rule)
@@ -70,13 +134,28 @@ class EnhancedLogRouter:
 
     async def route_logs(self, logs: List[Dict]) -> Dict[str, List[Dict]]:
         """
-        Route logs based on rules with advanced processing.
-        
+        Asynchronously routes a list of log entries based on defined rules,
+        applying advanced processing like transformations and enrichments.
+
+        This method processes each log concurrently using `asyncio.TaskGroup`.
+        For each log, it finds a matching `RoutingRule`, applies the specified
+        transformations (e.g., field masking, GeoIP enrichment), enriches the log
+        with metadata (like rule name and processing time), and updates
+        internal metrics. Finally, it batches the processed logs and sends them
+        to their respective destinations.
+
         Args:
-            logs (List[Dict]): Logs to route
-            
+            logs (List[Dict]): A list of dictionaries, where each dictionary
+                               represents a single log entry. These logs will be
+                               evaluated against the configured routing rules.
+
         Returns:
-            Dict[str, List[Dict]]: Routed logs by destination
+            Dict[str, List[Dict]]: A dictionary where keys are destination types
+                                   (e.g., "AzureBlob", "KafkaTopic") and values are
+                                   lists of processed log dictionaries that have been
+                                   routed to that destination type. Logs that fail
+                                   processing or do not match any rule may be logged
+                                   as errors and not included in the output.
         """
         routed_logs = defaultdict(list)
         processing_tasks = []
@@ -154,7 +233,7 @@ class EnhancedLogRouter:
                 field_value = self._get_nested_value(log, condition['field'])
                 
                 # Apply condition
-                if not await self._apply_condition(
+                if not await self._apply_condition( # Calls the new stub
                     field_value,
                     condition['operator'],
                     condition['value']
@@ -162,9 +241,29 @@ class EnhancedLogRouter:
                     return False
                     
             except Exception as e:
-                self.logger.error(f"Condition evaluation error: {str(e)}")
+                self.logger.error(f"Condition evaluation error: {str(e)}") # This might not be reached if _apply_condition stub always returns True
                 return False
 
+        return True
+
+    def _validate_rule(self, rule: RoutingRule) -> None:
+        """Stub for validating a routing rule."""
+        self.logger.warning("EnhancedLogRouter._validate_rule is a stub and not yet implemented.")
+        pass
+
+    def _setup_destinations(self) -> None:
+        """Stub for setting up destination senders."""
+        self.logger.warning("EnhancedLogRouter._setup_destinations is a stub and not yet implemented.")
+        pass
+
+    def _initialize_monitoring(self) -> None:
+        """Stub for initializing monitoring components."""
+        self.logger.warning("EnhancedLogRouter._initialize_monitoring is a stub and not yet implemented.")
+        pass
+
+    async def _apply_condition(self, field_value: Any, operator: str, condition_value: Any) -> bool:
+        """Stub for applying a single condition operator."""
+        self.logger.warning("EnhancedLogRouter._apply_condition is a stub and not yet implemented.")
         return True
 
     async def _apply_transformations(self, context: TransformationContext) -> Dict:
@@ -244,9 +343,38 @@ class EnhancedLogRouter:
             'field_combine': self._transform_field_combine,
             'value_map': self._transform_value_map,
             'timestamp_convert': self._transform_timestamp,
-            'geoip_enrich': self._transform_geoip_enrich,
-            'regex_extract': self._transform_regex_extract
+            'geoip_enrich': self._transform_geoip_enrich, # Existing, assumed to have a real implementation
+            'regex_extract': self._transform_regex_extract # New stub
         }
+
+    # --- Stubs for transformation helpers ---
+
+    async def _transform_field_extract(self, log: Dict, transform: Dict, context: TransformationContext) -> Dict:
+        """Stub for extracting a field."""
+        self.logger.warning("EnhancedLogRouter._transform_field_extract is a stub and not yet implemented.")
+        return log
+
+    async def _transform_field_combine(self, log: Dict, transform: Dict, context: TransformationContext) -> Dict:
+        """Stub for combining fields."""
+        self.logger.warning("EnhancedLogRouter._transform_field_combine is a stub and not yet implemented.")
+        return log
+
+    async def _transform_value_map(self, log: Dict, transform: Dict, context: TransformationContext) -> Dict:
+        """Stub for mapping field values."""
+        self.logger.warning("EnhancedLogRouter._transform_value_map is a stub and not yet implemented.")
+        return log
+
+    async def _transform_timestamp(self, log: Dict, transform: Dict, context: TransformationContext) -> Dict:
+        """Stub for converting timestamp formats."""
+        self.logger.warning("EnhancedLogRouter._transform_timestamp is a stub and not yet implemented.")
+        return log
+
+    async def _transform_regex_extract(self, log: Dict, transform: Dict, context: TransformationContext) -> Dict:
+        """Stub for regex extraction."""
+        self.logger.warning("EnhancedLogRouter._transform_regex_extract is a stub and not yet implemented.")
+        return log
+
+    # --- Existing transformation methods (assuming _transform_field_rename, _transform_field_mask, _transform_geoip_enrich are kept) ---
 
     async def _transform_field_rename(
         self,
@@ -351,11 +479,24 @@ class EnhancedLogRouter:
         current = obj
         
         for i, part in enumerate(parts[:-1]):
-            if part not in current:
+            if part not in current or not isinstance(current[part], dict): # Ensure path exists and is a dict
                 current[part] = {}
             current = current[part]
             
         current[parts[-1]] = value
+
+    def _remove_nested_field(self, obj: Dict, path: str) -> None:
+        """Stub for removing a nested field from a dictionary."""
+        self.logger.warning("EnhancedLogRouter._remove_nested_field is a stub and not yet implemented.")
+        # Example tentative logic:
+        # parts = path.split('.')
+        # current = obj
+        # for part in parts[:-1]:
+        #     if part not in current or not isinstance(current.get(part), dict):
+        #         return # Field does not exist or path is invalid
+        #     current = current[part]
+        # current.pop(parts[-1], None) # Remove last part if it exists
+        pass
 
     async def _update_metrics(self, rule: RoutingRule, log: Dict):
         """Update routing metrics."""
@@ -371,7 +512,30 @@ class EnhancedLogRouter:
         rule.performance_metrics['last_processed'] = datetime.utcnow().isoformat()
 
     async def generate_metrics_report(self) -> Dict:
-        """Generate detailed metrics report."""
+        """
+        Asynchronously generates a detailed report of routing and performance metrics.
+
+        This report provides insights into the router's operation, including
+        overall log processing statistics, metrics for each individual rule,
+        and system performance indicators.
+
+        Returns:
+            Dict: A dictionary containing the metrics report, structured as follows:
+                - 'timestamp' (str): ISO format timestamp of when the report was generated.
+                - 'overall_metrics' (Dict): Aggregated metrics across all rules and logs,
+                  typically including 'total_logs' processed and 'total_bytes' handled,
+                  often broken down by time windows (e.g., hourly).
+                - 'rule_metrics' (Dict): Metrics specific to each `RoutingRule`, keyed by
+                  rule name. Each rule's metrics may include:
+                    - 'processed_logs' (int): Number of logs processed by this rule.
+                    - 'last_processed' (str): Timestamp of the last log processed.
+                    - 'error_count' (int): Number of errors encountered for this rule.
+                - 'performance_metrics' (Dict): System-level performance indicators, such as:
+                    - 'average_processing_time' (float): Average time taken to process a log.
+                    - 'error_rate' (float): Percentage of logs that resulted in an error.
+                    - 'destination_latency' (Dict): Metrics related to the latency of
+                                                    sending data to different destinations.
+        """
         report = {
             'timestamp': datetime.utcnow().isoformat(),
             'overall_metrics': dict(self.metrics),
@@ -392,3 +556,20 @@ class EnhancedLogRouter:
             }
 
         return report
+
+    # --- Stubs for metric calculation helpers ---
+
+    async def _calculate_avg_processing_time(self) -> float:
+        """Stub for calculating average processing time."""
+        self.logger.warning("EnhancedLogRouter._calculate_avg_processing_time is a stub and not yet implemented.")
+        return 0.0
+
+    async def _calculate_error_rate(self) -> float:
+        """Stub for calculating error rate."""
+        self.logger.warning("EnhancedLogRouter._calculate_error_rate is a stub and not yet implemented.")
+        return 0.0
+
+    async def _get_destination_latency(self) -> Dict:
+        """Stub for getting destination latencies."""
+        self.logger.warning("EnhancedLogRouter._get_destination_latency is a stub and not yet implemented.")
+        return {}

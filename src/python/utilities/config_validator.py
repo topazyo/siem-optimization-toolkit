@@ -12,6 +12,23 @@ class ConfigValidator:
     """
 
     def __init__(self):
+        """
+        Initializes the ConfigValidator instance.
+
+        The primary purpose of the constructor is to set up a logger for
+        internal messages and to load all available JSON schemas. These schemas
+        are used to validate various configuration files within the toolkit.
+        Schemas are expected to be located in a 'schemas' subdirectory relative
+        to this file, and each '.json' file in that directory is loaded as a schema.
+
+        Initializes key attributes:
+        - `logger` (logging.Logger): A configured logger instance for logging
+                                     validation activities and errors.
+        - `schemas` (Dict[str, Dict]): A dictionary where keys are schema names
+                                       (derived from the JSON filenames, e.g.,
+                                       'rule_config' from 'rule_config.json') and
+                                       values are the loaded JSON schema dictionaries.
+        """
         self.logger = logging.getLogger(__name__)
         self.schemas = self._load_schemas()
 
