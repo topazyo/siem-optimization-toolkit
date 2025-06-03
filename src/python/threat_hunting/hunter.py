@@ -76,6 +76,8 @@ class ThreatHunter:
         self.logger = logging.getLogger(__name__)
         self.hunting_queries = self._load_hunting_queries()
         self.detection_patterns = self._load_detection_patterns()
+        # It's good practice to also initialize a logger here, e.g.:
+        self.logger = logging.getLogger(__name__) # Added logger initialization
 
 
     def _load_hunting_queries(self) -> Dict:
