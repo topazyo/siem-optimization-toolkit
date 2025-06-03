@@ -13,25 +13,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Set up configuration
-mkdir -p config
-cp config/examples/* config/
+# Ensure config directory exists; copy examples if it's empty or specific files are missing.
+# This is a more robust way to handle example configs.
+if [ ! -d "config" ] || [ -z "$(ls -A config)" ]; then
+    mkdir -p config
+    echo "Copying example configurations..."
+    cp config/examples/* config/
+else
+    echo "Config directory already exists and is not empty. Skipping example copy."
+fi
 
 # Set up logging
 mkdir -p logs
 
 echo "Setup complete!"
-
-# scripts/maintenance/update_patterns.sh
-
-#!/bin/bash
-
-# Update threat detection patterns
-echo "Updating threat detection patterns..."
-
-# Download latest patterns
-curl -o config/detection_patterns.yaml https://example.com/latest-patterns
-
-# Validate patterns
-python scripts/validate_patterns.py
-
-echo "Pattern update complete!"
