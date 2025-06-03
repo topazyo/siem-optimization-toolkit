@@ -64,6 +64,7 @@ class SentinelDashboard:
         """
         self.templates = self._load_templates(template_path)
         self.current_metrics = None # Will be set when generate_dashboard is called
+        self.logger = logging.getLogger(__name__) # Added logger initialization
 
     def _load_templates(self, path: str) -> Dict:
         """Load dashboard templates from YAML configuration."""
