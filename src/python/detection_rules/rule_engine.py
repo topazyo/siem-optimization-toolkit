@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import logging
 import asyncio
 from abc import ABC, abstractmethod
+from pathlib import Path # Added import
 
 @dataclass
 class DetectionRule:
@@ -194,6 +195,43 @@ class CustomDetectionRule(BaseDetectionRule):
         except Exception as e:
             self.logger.error(f"Rule validation error: {str(e)}")
             return False
+
+    # --- Stubs for private methods ---
+
+    def _prepare_query(self, context: Dict) -> str:
+        """Stub for preparing the KQL query with context parameters."""
+        self.logger.warning("CustomDetectionRule._prepare_query is a stub and not yet implemented.")
+        return self.config.query
+
+    async def _execute_query(self, query: str) -> List[Dict]:
+        """Stub for executing the KQL query."""
+        self.logger.warning("CustomDetectionRule._execute_query is a stub and not yet implemented.")
+        return []
+
+    def _determine_severity(self, matches: List[Dict]) -> str:
+        """Stub for determining the severity of rule matches."""
+        self.logger.warning("CustomDetectionRule._determine_severity is a stub and not yet implemented.")
+        return "Medium"
+
+    def _calculate_confidence(self, matches: List[Dict]) -> float:
+        """Stub for calculating the confidence of rule matches."""
+        self.logger.warning("CustomDetectionRule._calculate_confidence is a stub and not yet implemented.")
+        return 0.5
+
+    def _validate_query_syntax(self, query: str) -> bool:
+        """Stub for validating KQL query syntax."""
+        self.logger.warning("CustomDetectionRule._validate_query_syntax is a stub and not yet implemented.")
+        return True
+
+    def _validate_parameters(self, parameters: Dict) -> bool:
+        """Stub for validating rule parameters."""
+        self.logger.warning("CustomDetectionRule._validate_parameters is a stub and not yet implemented.")
+        return True
+
+    def _validate_attack_mappings(self, tactics: List[str], techniques: List[str]) -> bool:
+        """Stub for validating ATT&CK tactics and techniques."""
+        self.logger.warning("CustomDetectionRule._validate_attack_mappings is a stub and not yet implemented.")
+        return True
 
 class RuleEngine:
     """Detection rule engine for Sentinel."""

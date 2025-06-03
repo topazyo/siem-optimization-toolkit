@@ -8,6 +8,7 @@ from datetime import datetime
 import json
 import logging
 from dataclasses import dataclass
+import yaml # Added import
 
 @dataclass
 class LogRoute:
@@ -192,6 +193,28 @@ class LogRouter:
                 continue
 
         return transformed_log
+
+    # --- Stubs for private methods ---
+
+    async def _evaluate_filter(self, log: Dict, field: str, operator: str, value: Any) -> bool:
+        """Stub for evaluating a single filter condition against a log entry."""
+        self.logger.warning("LogRouter._evaluate_filter is a stub and not yet implemented.")
+        return True # Assume filter passes for now
+
+    async def _rename_field(self, log: Dict, old_name: str, new_name: str) -> Dict:
+        """Stub for renaming a field in a log entry."""
+        self.logger.warning("LogRouter._rename_field is a stub and not yet implemented.")
+        return log # Return original log
+
+    async def _add_field(self, log: Dict, field: str, value: Any) -> Dict:
+        """Stub for adding a new field to a log entry."""
+        self.logger.warning("LogRouter._add_field is a stub and not yet implemented.")
+        return log # Return original log
+
+    async def _remove_field(self, log: Dict, field: str) -> Dict:
+        """Stub for removing a field from a log entry."""
+        self.logger.warning("LogRouter._remove_field is a stub and not yet implemented.")
+        return log # Return original log
 
     async def _update_metrics(self, log: Dict, destination: str) -> None:
         """Update routing metrics."""

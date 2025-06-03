@@ -153,6 +153,12 @@ class KQLOptimizer:
 
         return query, optimization
 
+    def _optimize_where_clauses(self, query: str) -> Tuple[str, Optional[Dict]]:
+        """Stub for optimizing where clauses in KQL query."""
+        self.logger.warning("KQLOptimizer._optimize_where_clauses is a stub and not yet implemented.")
+        # Return original query and no optimization details
+        return query, None
+
     async def _estimate_performance_improvement(
         self, 
         original_query: str, 
