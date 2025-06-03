@@ -34,7 +34,10 @@ class RuleTester:
                                           input data, parameters, and expected outcomes.
         """
         self.rule_engine = rule_engine
-        self.logger = logging.getLogger(__name__)
+        # Assuming logging and Path are imported, e.g.:
+        # import logging
+        # from pathlib import Path
+        self.logger = logging.getLogger(__name__) # type: ignore
         self.test_cases = self._load_test_cases()
 
     def _load_test_cases(self) -> Dict:
