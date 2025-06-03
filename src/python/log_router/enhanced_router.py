@@ -16,21 +16,49 @@ from collections import defaultdict
 
 @dataclass
 class RoutingRule:
-    name: str
-    conditions: List[Dict]
-    transformations: List[Dict]
-    destination: Dict
-    priority: int
-    enabled: bool = True
-    metadata: Dict = field(default_factory=dict)
-    performance_metrics: Dict = field(default_factory=dict)
+    """
+    Defines an advanced rule for routing and transforming logs.
+
+    This dataclass encapsulates the logic for a single routing path, including
+    its unique name, conditions for matching logs, a series of transformations
+    to apply, the target destination, priority for execution order,
+    operational status (enabled/disabled), and associated metadata and
+    performance metrics.
+    """
+    name: str  # Unique name for the routing rule (e.g., "PII_Scrubbing_and_Archive").
+    conditions: List[Dict]  # A list of conditions that a log must meet to be processed by this rule.
+                             # Each dictionary defines a condition, e.g.,
+                             # {"field": "UserData.Email", "operator": "exists"}.
+    transformations: List[Dict]  # A list of transformation steps to apply to the log.
+                                 # Each dictionary defines a transformation, e.g.,
+                                 # {"type": "field_mask", "field": "UserData.SSN"}.
+    destination: Dict  # Configuration for the destination where the transformed log should be sent.
+                       # e.g., {"type": "AzureBlob", "container": "archived-logs"}.
+    priority: int  # Numerical priority of the rule. Lower numbers indicate higher priority.
+                   # Rules are typically evaluated in ascending order of priority.
+    enabled: bool = True  # Flag indicating whether the rule is currently active.
+    metadata: Dict = field(default_factory=dict)  # Arbitrary metadata associated with the rule,
+                                               # e.g., {"owner": "compliance_team", "version": "1.2"}.
+    performance_metrics: Dict = field(default_factory=dict)  # Dictionary to store runtime performance metrics
+                                                          # for this specific rule, e.g.,
+                                                          # {"processed_logs": 1000, "error_count": 5}.
 
 @dataclass
 class TransformationContext:
-    original_log: Dict
-    transformed_log: Dict
-    route: RoutingRule
-    metadata: Dict = field(default_factory=dict)
+    """
+    Holds data and state during the log transformation process for a single log entry.
+
+    This dataclass is passed through the transformation pipeline for a log,
+    allowing different transformation steps to access the original log, the
+    log as it's being modified, details of the routing rule being applied,
+    and any other relevant metadata accumulated during processing.
+    """
+    original_log: Dict  # The log entry as it was received, before any transformations.
+    transformed_log: Dict  # The log entry as it is being modified by transformation steps.
+                           # This field is updated in place by transformers.
+    route: RoutingRule  # The `RoutingRule` instance that matched the log and triggered this transformation.
+    metadata: Dict = field(default_factory=dict)  # Arbitrary metadata that can be passed between transformation
+                                               # steps or used to influence transformation logic.
 
 class EnhancedLogRouter:
     """
@@ -38,6 +66,34 @@ class EnhancedLogRouter:
     """
 
     def __init__(self, config_path: str):
+        """
+        Initializes the EnhancedLogRouter instance.
+
+        This constructor sets up logging, loads the main configuration from the
+        specified YAML file, and then initializes various components of the router
+        including rules, transformers, destinations, metrics collection, and caching.
+
+        Args:
+            config_path (str): The file system path to the main configuration
+                               YAML file for the router. This file defines rules,
+                               transformer settings, and destination details.
+
+        Initializes key attributes:
+        - `logger` (logging.Logger): A configured logger instance.
+        - `config` (Dict): The raw configuration loaded from `config_path`.
+        - `rules` (List[RoutingRule]): A list to store `RoutingRule` instances,
+                                       parsed and validated from the config.
+        - `transformers` (Dict[str, Callable]): A dictionary mapping transformation
+                                                types (str) to their implementing
+                                                callable functions.
+        - `destinations` (Dict[str, Callable]): A dictionary mapping destination
+                                                types (str) to functions responsible
+                                                for sending logs to those destinations.
+        - `metrics` (defaultdict): A nested dictionary for collecting various
+                                   runtime metrics about log processing.
+        - `cache` (Dict): A generic cache that can be used by various components,
+                          for example, by GeoIP enrichment to store recent lookups.
+        """
         self.logger = logging.getLogger(__name__)
         self.config = self._load_config(config_path)
         self.rules: List[RoutingRule] = []
@@ -70,13 +126,28 @@ class EnhancedLogRouter:
 
     async def route_logs(self, logs: List[Dict]) -> Dict[str, List[Dict]]:
         """
-        Route logs based on rules with advanced processing.
-        
+        Asynchronously routes a list of log entries based on defined rules,
+        applying advanced processing like transformations and enrichments.
+
+        This method processes each log concurrently using `asyncio.TaskGroup`.
+        For each log, it finds a matching `RoutingRule`, applies the specified
+        transformations (e.g., field masking, GeoIP enrichment), enriches the log
+        with metadata (like rule name and processing time), and updates
+        internal metrics. Finally, it batches the processed logs and sends them
+        to their respective destinations.
+
         Args:
-            logs (List[Dict]): Logs to route
-            
+            logs (List[Dict]): A list of dictionaries, where each dictionary
+                               represents a single log entry. These logs will be
+                               evaluated against the configured routing rules.
+
         Returns:
-            Dict[str, List[Dict]]: Routed logs by destination
+            Dict[str, List[Dict]]: A dictionary where keys are destination types
+                                   (e.g., "AzureBlob", "KafkaTopic") and values are
+                                   lists of processed log dictionaries that have been
+                                   routed to that destination type. Logs that fail
+                                   processing or do not match any rule may be logged
+                                   as errors and not included in the output.
         """
         routed_logs = defaultdict(list)
         processing_tasks = []
@@ -371,7 +442,30 @@ class EnhancedLogRouter:
         rule.performance_metrics['last_processed'] = datetime.utcnow().isoformat()
 
     async def generate_metrics_report(self) -> Dict:
-        """Generate detailed metrics report."""
+        """
+        Asynchronously generates a detailed report of routing and performance metrics.
+
+        This report provides insights into the router's operation, including
+        overall log processing statistics, metrics for each individual rule,
+        and system performance indicators.
+
+        Returns:
+            Dict: A dictionary containing the metrics report, structured as follows:
+                - 'timestamp' (str): ISO format timestamp of when the report was generated.
+                - 'overall_metrics' (Dict): Aggregated metrics across all rules and logs,
+                  typically including 'total_logs' processed and 'total_bytes' handled,
+                  often broken down by time windows (e.g., hourly).
+                - 'rule_metrics' (Dict): Metrics specific to each `RoutingRule`, keyed by
+                  rule name. Each rule's metrics may include:
+                    - 'processed_logs' (int): Number of logs processed by this rule.
+                    - 'last_processed' (str): Timestamp of the last log processed.
+                    - 'error_count' (int): Number of errors encountered for this rule.
+                - 'performance_metrics' (Dict): System-level performance indicators, such as:
+                    - 'average_processing_time' (float): Average time taken to process a log.
+                    - 'error_rate' (float): Percentage of logs that resulted in an error.
+                    - 'destination_latency' (Dict): Metrics related to the latency of
+                                                    sending data to different destinations.
+        """
         report = {
             'timestamp': datetime.utcnow().isoformat(),
             'overall_metrics': dict(self.metrics),

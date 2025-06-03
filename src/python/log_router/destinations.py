@@ -15,9 +15,29 @@ class DestinationHandlers:
     """Handlers for various log destinations."""
 
     def __init__(self, config: Dict):
+        """
+        Initializes the DestinationHandlers instance.
+
+        This constructor stores the overall configuration, sets up a logger,
+        and initializes an `aiohttp.ClientSession` for making HTTP requests
+        to various destination APIs.
+
+        Args:
+            config (Dict): A dictionary containing overall configuration settings
+                           that might be relevant for all destination types,
+                           such as global credentials, retry policies, or network settings.
+                           Specific destination configurations are passed to each `send_to_*` method.
+
+        Initializes key attributes:
+        - `config` (Dict): Stores the provided overall configuration.
+        - `logger` (logging.Logger): A configured logger instance.
+        - `session` (aiohttp.ClientSession): An asynchronous HTTP client session
+                                             used by various handlers. Initialized by
+                                             `_initialize_clients`.
+        """
         self.config = config
         self.logger = logging.getLogger(__name__)
-        self.session = None
+        self.session = None # Initialized by _initialize_clients
         self._initialize_clients()
 
     async def _initialize_clients(self):
@@ -25,7 +45,12 @@ class DestinationHandlers:
         self.session = aiohttp.ClientSession()
 
     async def close(self):
-        """Clean up resources."""
+        """
+        Cleans up resources, primarily the `aiohttp.ClientSession`.
+
+        This method should be called when the DestinationHandlers instance
+        is no longer needed to ensure proper release of network resources.
+        """
         if self.session:
             await self.session.close()
 
@@ -34,7 +59,26 @@ class DestinationHandlers:
         logs: List[Dict],
         config: Dict
     ) -> bool:
-        """Send logs to Elasticsearch."""
+        """
+        Asynchronously sends a list of log dictionaries to an Elasticsearch instance.
+
+        Logs are sent using the Elasticsearch Bulk API for efficient ingestion.
+        Each log entry is formatted as a JSON document for a specified index.
+
+        Args:
+            logs (List[Dict]): A list of dictionaries, where each dictionary
+                               represents a log entry to be sent.
+            config (Dict): Configuration specific to this Elasticsearch destination.
+                           Expected keys:
+                           - 'url' (str): The base URL of the Elasticsearch instance
+                                          (e.g., "http://localhost:9200").
+                           - 'index' (str): The Elasticsearch index where logs should be stored.
+                           - Optional: authentication details if required by Elasticsearch.
+
+        Returns:
+            bool: True if logs were sent successfully (HTTP 200 or 201 from Bulk API),
+                  False otherwise. Errors are logged.
+        """
         try:
             url = f"{config['url']}/_bulk"
             bulk_data = []
@@ -67,7 +111,26 @@ class DestinationHandlers:
         logs: List[Dict],
         config: Dict
     ) -> bool:
-        """Send logs to AWS S3."""
+        """
+        Asynchronously sends a list of log dictionaries to an AWS S3 bucket.
+
+        Logs are typically batched and written as a single JSON object to a
+        file in the specified S3 bucket. The filename often includes a timestamp
+        and a configured prefix for organization.
+
+        Args:
+            logs (List[Dict]): A list of dictionaries, where each dictionary
+                               represents a log entry.
+            config (Dict): Configuration specific to this S3 destination.
+                           Expected keys:
+                           - 'bucket' (str): The name of the S3 bucket.
+                           - 'prefix' (str): A prefix for the S3 object key (e.g., "logs/app_name/").
+                           - Optional: AWS credentials and region if not configured globally.
+
+        Returns:
+            bool: True if logs were uploaded successfully, False otherwise.
+                  Errors are logged.
+        """
         try:
             session = aioboto3.Session()
             async with session.client('s3') as s3:
@@ -93,7 +156,29 @@ class DestinationHandlers:
         logs: List[Dict],
         config: Dict
     ) -> bool:
-        """Send logs to Splunk HEC."""
+        """
+        Asynchronously sends a list of log dictionaries to Splunk via its
+        HTTP Event Collector (HEC).
+
+        Each log entry is formatted as a Splunk event, including metadata like
+        timestamp, host, source, and sourcetype, before being sent.
+
+        Args:
+            logs (List[Dict]): A list of dictionaries, where each dictionary
+                               represents a log entry.
+            config (Dict): Configuration specific to this Splunk HEC destination.
+                           Expected keys:
+                           - 'url' (str): The URL of the Splunk HEC endpoint
+                                          (e.g., "https://splunk.example.com:8088").
+                           - 'token' (str): The Splunk HEC authentication token.
+                           - 'host' (str, optional): The host value for the events.
+                           - 'source' (str, optional): The source value for the events.
+                           - 'sourcetype' (str, optional): The sourcetype for the events.
+
+        Returns:
+            bool: True if logs were sent successfully (HTTP 200 from HEC),
+                  False otherwise. Errors are logged.
+        """
         try:
             url = f"{config['url']}/services/collector"
             headers = {
@@ -131,28 +216,55 @@ class DestinationHandlers:
         logs: List[Dict],
         config: Dict
     ) -> bool:
-        """Send logs to Kafka topic."""
+        """
+        Asynchronously sends a list of log dictionaries to an Apache Kafka topic.
+
+        Each log entry is typically serialized to JSON and sent as a message
+        to the specified Kafka topic. This method handles the producer setup,
+        message sending, and producer shutdown.
+
+        Args:
+            logs (List[Dict]): A list of dictionaries, where each dictionary
+                               represents a log entry.
+            config (Dict): Configuration specific to this Kafka destination.
+                           Expected keys:
+                           - 'bootstrap_servers' (str or List[str]): Kafka broker address(es).
+                           - 'topic' (str): The Kafka topic to send logs to.
+                           - 'username' (str, optional): Username for SASL authentication.
+                           - 'password' (str, optional): Password for SASL authentication.
+                           - Other Kafka producer settings as needed by `AIOKafkaProducer`.
+
+        Returns:
+            bool: True if all logs were sent successfully, False otherwise.
+                  Errors are logged.
+        """
         try:
-            producer = AIOKafkaProducer(
-                bootstrap_servers=config['bootstrap_servers'],
-                security_protocol="SASL_SSL",
-                sasl_mechanism="PLAIN",
-                sasl_plain_username=config['username'],
-                sasl_plain_password=config['password']
-            )
+            # Assuming AIOKafkaProducer is available and configured in the environment
+            # from aiokafka import AIOKafkaProducer # Would be at the top of the file
+
+            producer_config = {
+                'bootstrap_servers': config['bootstrap_servers']
+            }
+            if 'username' in config and 'password' in config:
+                producer_config.update({
+                    "security_protocol": "SASL_SSL", # Common, but might vary
+                    "sasl_mechanism": "PLAIN",        # Common, but might vary
+                    "sasl_plain_username": config['username'],
+                    "sasl_plain_password": config['password']
+                })
+            # Add other relevant Kafka producer settings from config if needed
+
+            producer = AIOKafkaProducer(**producer_config)
             
             await producer.start()
             
             try:
-                # Send messages
                 for log in logs:
                     await producer.send_and_wait(
                         topic=config['topic'],
-                        value=json.dumps(log).encode()
+                        value=json.dumps(log).encode('utf-8') # Ensure encoding
                     )
-                    
                 return True
-                
             finally:
                 await producer.stop()
                 

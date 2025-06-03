@@ -11,11 +11,30 @@ import pandas as pd
 
 @dataclass
 class DashboardMetrics:
-    ingestion_volume: float
-    cost_metrics: Dict
-    query_performance: Dict
-    threat_findings: List[Dict]
-    system_health: Dict
+    """
+    Holds all data required to generate the Sentinel monitoring dashboard.
+
+    This dataclass aggregates various metrics from different aspects of Sentinel
+    operations, including data ingestion, cost, query performance, threat
+    detections, and overall system health.
+    """
+    ingestion_volume: float  # Total data ingestion volume, typically in GB.
+    cost_metrics: Dict  # Metrics related to Sentinel costs.
+                        # Example: {'total_cost': 500.75, 'daily_costs': {'2023-01-01': 20.5, ...},
+                        #           'cost_by_category': {'Data Ingestion': 300.0, 'Analytics Rules': 100.25},
+                        #           'cost_trend_percentage': 5.2, 'potential_savings': 75.0}
+    query_performance: Dict  # Performance metrics for KQL queries.
+                             # Example: {'avg_execution_time': 0.5, 'slow_queries': [{'name': 'xyz', 'time': 2.3}],
+                             #           'execution_times': [[0.2, 0.5], [0.8, 0.3]], # Heatmap data
+                             #           'query_names': ['QueryA', 'QueryB'], # Heatmap labels
+                             #           'time_periods': ['Last 24h', 'Last 7d'], # Heatmap labels
+                             #           'optimization_impact': 15.0} # Percentage improvement
+    threat_findings: List[Dict]  # List of detected threats or notable events.
+                                 # Example: [{'id': 'THREAT001', 'severity': 'high', 'description': 'Malware detected', 'timestamp': '...'},
+                                 #           {'id': 'THREAT002', 'severity': 'medium', 'description': 'Suspicious login'}]
+    system_health: Dict  # Metrics indicating the health of the Sentinel system and its components.
+                         # Example: {'data_connector_status': {'AzureActivity': 'healthy', 'Office365': 'error'},
+                         #           'rule_latency_avg_ms': 120, 'ingestion_delay_avg_s': 30}
 
 class SentinelDashboard:
     """
@@ -23,8 +42,27 @@ class SentinelDashboard:
     """
 
     def __init__(self, template_path: str = 'config/dashboard_templates.yaml'):
+        """
+        Initializes the SentinelDashboard instance.
+
+        This constructor loads dashboard layout templates from a specified YAML file.
+        These templates define the structure and content sections of the dashboard.
+        It also initializes an attribute to hold the current metrics data.
+
+        Args:
+            template_path (str, optional): The file system path to the YAML file
+                                           containing dashboard layout templates.
+                                           Defaults to 'config/dashboard_templates.yaml'.
+
+        Initializes key attributes:
+        - `templates` (Dict): A dictionary loaded from the `template_path` file,
+                              containing definitions for dashboard sections and elements.
+        - `current_metrics` (Optional[DashboardMetrics]): Stores the `DashboardMetrics`
+                                                        object last used to generate a
+                                                        dashboard. Initialized to None.
+        """
         self.templates = self._load_templates(template_path)
-        self.current_metrics = None
+        self.current_metrics = None # Will be set when generate_dashboard is called
 
     def _load_templates(self, path: str) -> Dict:
         """Load dashboard templates from YAML configuration."""
@@ -32,7 +70,35 @@ class SentinelDashboard:
             return yaml.safe_load(f)
 
     async def generate_dashboard(self, metrics: DashboardMetrics) -> Dict:
-        """Generate a complete dashboard with all visualizations."""
+        """
+        Asynchronously generates a structured dashboard dictionary from provided metrics.
+
+        The dashboard is composed of several sections (e.g., cost, performance,
+        threats, health), each containing titles, Plotly charts serialized to JSON,
+        and summary metrics. This structured dictionary can then be used by other
+        methods to render the dashboard into a specific format like HTML or PDF.
+
+        Args:
+            metrics (DashboardMetrics): A `DashboardMetrics` object containing all the
+                                        data needed to populate the dashboard sections.
+
+        Returns:
+            Dict: A dictionary representing the complete dashboard.
+                  The structure is typically:
+                  {
+                      'timestamp': 'ISO_timestamp_of_generation',
+                      'sections': {
+                          'cost_optimization': {
+                              'title': 'Cost Optimization Metrics',
+                              'charts': {'cost_trend_json': '{plotly_json}', ...},
+                              'summary_metrics': {'total_cost': ..., ...}
+                          },
+                          'performance_metrics': { ... },
+                          'threat_hunting': { ... },
+                          'system_health': { ... }
+                      }
+                  }
+        """
         self.current_metrics = metrics
         
         dashboard = {
@@ -129,10 +195,37 @@ class SentinelDashboard:
         }
 
     async def export_dashboard(self, format: str = 'html') -> str:
-        """Export dashboard in specified format."""
+        """
+        Asynchronously exports the currently generated dashboard into the specified format.
+
+        Currently supports HTML. PDF generation is intended for future implementation.
+        The dashboard must be generated using `generate_dashboard` before exporting.
+
+        Args:
+            format (str, optional): The desired output format for the dashboard.
+                                    Currently supported: 'html'. 'pdf' is a placeholder.
+                                    Defaults to 'html'.
+
+        Returns:
+            str: A string containing the dashboard content in the specified format
+                 (e.g., HTML content). For 'pdf', it would eventually return PDF data
+                 or a path to the PDF file.
+
+        Raises:
+            ValueError: If an unsupported `format` is specified.
+            RuntimeError: If `generate_dashboard` has not been called first to populate
+                          `self.current_metrics`.
+        """
+        if self.current_metrics is None:
+            raise RuntimeError("Dashboard has not been generated yet. Call generate_dashboard() first.")
+
         if format == 'html':
+            # _generate_html_dashboard would use self.current_metrics or the full dashboard dict
             return self._generate_html_dashboard()
         elif format == 'pdf':
-            return await self._generate_pdf_dashboard()
+            # _generate_pdf_dashboard would use self.current_metrics or the full dashboard dict
+            # This is a placeholder for future PDF generation logic
+            self.logger.warning("PDF export is not fully implemented yet.") # Assuming logger is initialized
+            return await self._generate_pdf_dashboard() # Assuming this method exists
         else:
             raise ValueError(f"Unsupported format: {format}")
