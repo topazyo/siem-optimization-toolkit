@@ -34,6 +34,10 @@ pip install -r requirements.txt
 
 Visit our [documentation](./docs/README.md) for detailed implementation guides.
 
+## 🛠️ Examples
+
+For detailed usage examples of various toolkit components, please see the [EXAMPLES.md](EXAMPLES.md) file.
+
 ## 🤝 Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.

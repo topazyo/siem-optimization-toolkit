@@ -12,6 +12,32 @@ class RouterMonitoring:
     """Advanced monitoring system for log router."""
 
     def __init__(self):
+        """
+        Initializes the RouterMonitoring instance.
+
+        This constructor sets up logging and initializes various data structures
+        for metrics collection. This includes a list to store raw performance data
+        points for later analysis and several Prometheus client metrics (Counter,
+        Histogram, Gauge) to track real-time performance indicators.
+
+        Key attributes initialized:
+        - `logger` (logging.Logger): A configured logger instance.
+        - `performance_data` (List[Dict]): A list to store dictionaries, where
+          each dictionary represents a recorded metrics event (e.g., a single
+          log processing attempt).
+        - `processed_logs` (prometheus_client.Counter): Tracks the total number
+          of processed logs, labeled by `rule_name` and `destination`.
+        - `processing_time` (prometheus_client.Histogram): Records the
+          distribution of time spent processing logs, labeled by `rule_name`.
+        - `destination_latency` (prometheus_client.Histogram): Records the
+          distribution of latency when sending logs to destinations, labeled by
+          `destination`.
+        - `error_counter` (prometheus_client.Counter): Tracks the total number
+          of errors encountered, labeled by `type` (e.g., 'processing') and
+          `rule_name`.
+        - `queue_size` (prometheus_client.Gauge): (If applicable to the router design)
+          Tracks the current size of any internal processing queues.
+        """
         self.logger = logging.getLogger(__name__)
         self._initialize_metrics()
         self.performance_data = []
@@ -54,12 +80,26 @@ class RouterMonitoring:
         processing_time: float,
         success: bool
     ):
-        """Record routing metrics."""
-        self.processed_logs.labels(rule_name, destination).inc()
-        self.processing_time.labels(rule_name).observe(processing_time)
+        """
+        Asynchronously records metrics for a single log processing event.
+
+        This method updates various Prometheus metrics (counters and histograms)
+        based on the outcome and performance of processing a log. It also appends
+        a record of this event to an internal list (`self.performance_data`)
+        for later detailed analysis and report generation.
+
+        Args:
+            rule_name (str): The name of the routing rule that processed the log.
+            destination (str): The destination to which the log was routed.
+            processing_time (float): The time taken to process the log, in seconds.
+            success (bool): True if the log was processed and sent successfully,
+                            False otherwise.
+        """
+        self.processed_logs.labels(rule_name=rule_name, destination=destination).inc()
+        self.processing_time.labels(rule_name=rule_name).observe(processing_time)
         
         if not success:
-            self.error_counter.labels('processing', rule_name).inc()
+            self.error_counter.labels(type='processing', rule_name=rule_name).inc()
 
         # Store for analysis
         self.performance_data.append({
@@ -74,7 +114,32 @@ class RouterMonitoring:
         self,
         time_window: timedelta = timedelta(hours=1)
     ) -> Dict:
-        """Generate detailed performance report."""
+        """
+        Asynchronously generates a detailed performance report based on collected metrics.
+
+        The report is generated from the `performance_data` collected within the
+        specified `time_window`. It includes overall performance summaries,
+        metrics broken down by rule and destination, and a list of detected anomalies.
+
+        Args:
+            time_window (timedelta, optional): The duration of past data to include
+                                               in the report. Defaults to 1 hour.
+
+        Returns:
+            Dict: A dictionary containing the performance report. The structure includes:
+                  - 'timestamp' (str): ISO format timestamp of report generation.
+                  - 'time_window' (str): The time window used for the report.
+                  - 'overall_metrics' (Dict): Aggregated metrics like 'total_logs',
+                    'success_rate', 'avg_processing_time', 'p95_processing_time'.
+                  - 'rule_metrics' (Dict): Metrics per rule, including 'total_logs',
+                    'success_rate', 'avg_processing_time' for each rule.
+                  - 'destination_metrics' (Dict): Metrics per destination, similar to
+                    rule metrics.
+                  - 'anomalies' (List[Dict]): A list of detected anomalies, such as
+                    high processing times or low success rates for specific rules.
+                    Each anomaly entry details its type, timestamp (if applicable),
+                    rule name, value, and the threshold breached.
+        """
         try:
             # Convert to DataFrame for analysis
             df = pd.DataFrame(self.performance_data)
