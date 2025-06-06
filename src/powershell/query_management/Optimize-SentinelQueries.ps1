@@ -21,62 +21,33 @@ param (
 class QueryOptimizationManager {
     [string]$WorkspaceId
     [string]$QueryLibraryPath
+    [string]$RuleConfigPath # Add new property
     [hashtable]$OptimizationRules
     [System.Collections.ArrayList]$OptimizationHistory
 
-    QueryOptimizationManager([string]$WorkspaceId, [string]$QueryLibraryPath) {
+    QueryOptimizationManager([string]$WorkspaceId, [string]$QueryLibraryPath, [string]$RuleConfigPath = "config/powershell_optimizer_rules.json") {
         $this.WorkspaceId = $WorkspaceId
         $this.QueryLibraryPath = $QueryLibraryPath
+        $this.RuleConfigPath = $RuleConfigPath
         $this.OptimizationHistory = [System.Collections.ArrayList]::new()
         $this.InitializeOptimizationRules()
     }
 
     [void] InitializeOptimizationRules() {
-        $this.OptimizationRules = @{
-            TimeRange = @{
-                Pattern = 'ago\(\d+d\)'
-                Action = {
-                    param($match)
-                    $days = [int]($match -replace '[^0-9]', '')
-                    if ($days -gt 30) {
-                        return "let timerange = ago($days`d);`n$_"
-                    }
-                    return $match
-                }
-                Impact = "High"
+        Write-Verbose "Loading optimization rules from $($this.RuleConfigPath)..."
+        try {
+            $jsonContent = Get-Content -Raw -Path $this.RuleConfigPath -ErrorAction Stop
+            $loadedRules = ConvertFrom-Json -InputObject $jsonContent -ErrorAction Stop
+            $this.OptimizationRules = @{} # Initialize as Hashtable
+            foreach ($rule in $loadedRules) {
+                $this.OptimizationRules[$rule.RuleName] = $rule # Store the whole rule object
             }
-            ProjectOptimization = @{
-                Pattern = 'project\s+\*'
-                Action = {
-                    param($match)
-                    return "project TimeGenerated, Computer, EventID, Activity"
-                }
-                Impact = "Medium"
-            }
-            JoinOptimization = @{
-                Pattern = 'join.*\('
-                Action = {
-                    param($match)
-                    return "join kind=innerunique hint.strategy=broadcast ("
-                }
-                Impact = "High"
-            }
-            SummarizeOptimization = @{
-                Pattern = 'summarize(?!\s+by\s+bin)'
-                Action = {
-                    param($match)
-                    return "summarize by bin(TimeGenerated, 1h)"
-                }
-                Impact = "Medium"
-            }
-            MaterializationOptimization = @{
-                Pattern = '(\w+\s*\|\s*where.*?){3,}'
-                Action = {
-                    param($match)
-                    return "let results = materialize($match)"
-                }
-                Impact = "High"
-            }
+            Write-Verbose "Successfully loaded $($this.OptimizationRules.Count) rules."
+        }
+        catch {
+            Write-Error "Failed to load or parse optimization rules from $($this.RuleConfigPath): $_"
+            # Fallback to empty rules or handle error as appropriate
+            $this.OptimizationRules = @{}
         }
     }
 
@@ -115,17 +86,20 @@ class QueryOptimizationManager {
     [string] OptimizeQuery([string]$query) {
         $optimizedQuery = $query
 
-        foreach ($rule in $this.OptimizationRules.Keys) {
-            $pattern = $this.OptimizationRules[$rule].Pattern
-            $action = $this.OptimizationRules[$rule].Action
+        foreach ($ruleName in $this.OptimizationRules.Keys) {
+            $rule = $this.OptimizationRules[$ruleName]
+            $pattern = $rule.Pattern
+            $replacement = $rule.Replacement # Using the replacement string directly
 
-            if ($optimizedQuery -match $pattern) {
-                try {
-                    $optimizedQuery = $optimizedQuery -replace $pattern, ($action.Invoke($matches[0]))
+            try {
+                if ($optimizedQuery -match $pattern) {
+                    # For simple replacement from JSON. Capture groups like $1, $2 work here.
+                    $optimizedQuery = $optimizedQuery -replace $pattern, $replacement
+                    Write-Verbose "Applied rule `"$($rule.RuleName)`" using simple replacement."
                 }
-                catch {
-                    Write-Warning "Failed to apply $rule optimization: $_"
-                }
+            }
+            catch {
+                Write-Warning "Failed to apply rule `"$($rule.RuleName)`" with pattern `"$pattern`": $_"
             }
         }
 
