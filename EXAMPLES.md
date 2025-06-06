@@ -25,10 +25,10 @@ All examples are designed to be run from the root directory of the repository.
 **File:** `python examples/use_cases/example_sentinel_monitor_analysis.py`
 
 **Description:**
-This script demonstrates how to use the `SentinelMonitor` component to analyze log ingestion patterns. It initializes the monitor, calls the `analyze_ingestion_patterns` method, and prints a summary of the (currently stubbed) analysis results, including total volume, daily patterns, peak hours, recommendations, and cost impact.
+This script demonstrates how to use the `SentinelMonitor` component to analyze log ingestion patterns. It initializes the monitor, calls the `analyze_ingestion_patterns` method, and prints a summary of the analysis results (based on simulated Azure data interaction), including total volume, daily patterns, peak hours, recommendations, and cost impact.
 
 **Note on Azure Credentials:**
-For real-world use against an Azure environment, ensure your Azure credentials are properly configured for `DefaultAzureCredential` (e.g., by logging in with `az login`). The example uses placeholder Workspace and Subscription IDs which you would replace. The underlying Azure calls in `SentinelMonitor` are currently stubbed.
+For real-world use against an Azure environment, ensure your Azure credentials are properly configured for `DefaultAzureCredential` (e.g., by logging in with `az login`). The example uses placeholder Workspace and Subscription IDs which you would replace. The underlying Azure data retrieval in `SentinelMonitor` is structured for live calls but currently uses simulated data.
 
 **To Run:**
 ```bash
@@ -91,7 +91,7 @@ It programmatically:
 2. Initializes `AdvancedKQLOptimizer` (a dependency for `ThreatHunter`).
 3. Initializes `ThreatHunter`.
 4. Calls `run_hunt` for a mock hunt ID defined in the temporary configuration.
-5. Prints the (stubbed) `ThreatHuntingResult`, showing structure for findings, severity, confidence, etc.
+5. Prints a `ThreatHuntingResult` (based on simulated Azure data interaction for query execution), showing structure for findings, severity, confidence, etc.
 6. Cleans up the temporary configuration files.
 
 **To Run:**
@@ -115,7 +115,7 @@ It:
 5. Prints the (stubbed) routed logs, which will show how logs are grouped by destination type and include metadata from the `_enrich_log` method.
 6. Generates and prints a (stubbed) metrics report from the router.
 
-This example shows the basic flow of log processing, even though the condition matching and transformation logic are currently placeholders.
+This example shows the basic flow of log processing, even though while some basic condition matching and simple transformations are implemented, many advanced transformations and actual destination sending logic are currently placeholders.
 
 **To Run:**
 ```bash
