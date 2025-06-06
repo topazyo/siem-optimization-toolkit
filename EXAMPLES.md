@@ -2,7 +2,13 @@
 
 This document provides an overview of the example scripts available in the `examples/use_cases/` directory. These scripts demonstrate how to use various components of the SIEM Optimization Toolkit.
 
-**Note:** Many underlying components are currently using stubbed methods for Azure API calls, file loading (for some specific configurations), and complex internal logic. Therefore, the examples will run and show the flow of operations, but the output data (e.g., analysis results, optimized queries, routed logs) will be based on these stubs and may not reflect real-world processing outcomes until the stubs are replaced with full implementations. Always check the individual example script's comments for specific details on its behavior with stubs.
+**Note on Azure API Calls and Stubbed Methods:**
+
+This toolkit contains a mix of components. Some, like the `AdvancedKQLOptimizer` and `QueryBenchmark` (for their query execution and benchmarking features), have been updated to attempt **live Azure API calls** to your Log Analytics workspace. For these components to function correctly, you must meet the Azure connectivity prerequisites (see `README.md`). If these prerequisites are not met, the Azure calls will fail.
+
+Other components, or parts of components not directly related to live query execution, may still use placeholder (stubbed) methods for some Azure API interactions or complex internal logic. Therefore, while examples will run and show the intended flow, the output data for these stubbed parts will be based on mock data and may not reflect real-world processing outcomes until those specific stubs are replaced with full implementations.
+
+Always check the individual example script's comments and the component's own documentation for specific details on its behavior regarding Azure interaction and stubbed functionalities.
 
 ## Running the Examples
 
@@ -36,10 +42,12 @@ python examples/use_cases/example_sentinel_monitor_analysis.py
 **File:** `python examples/use_cases/example_kql_optimizer.py`
 
 **Description:**
-This script shows how to use the `KQLOptimizer` to attempt to optimize a Kusto Query Language (KQL) query. It initializes the optimizer, provides a sample KQL query, calls the `optimize_query` method, and then prints the original query, the (stubbed) "optimized" query, and any (stubbed) optimization details provided.
+This script shows how to use the `AdvancedKQLOptimizer` to attempt to optimize a Kusto Query Language (KQL) query. It initializes the optimizer, provides a sample KQL query, calls the `optimize_query` method, and then prints the original query, the potentially modified query (as the optimizer can now apply some safe changes directly or add detailed suggestions as comments), and a list of identified optimization opportunities.
 
 **Note on Azure Credentials:**
-While `KQLOptimizer` initialization doesn't require Azure calls, methods for benchmarking (which `optimize_query` might use to estimate improvement) would. These are currently stubbed.
+`AdvancedKQLOptimizer` initialization itself does not require Azure calls. However, its methods for query optimization and benchmarking (e.g., `benchmark_query`, and `optimize_query` when it invokes benchmarking) now make **live Azure calls** to execute KQL queries and retrieve performance statistics from your Log Analytics workspace.
+
+Ensure your Azure environment is correctly authenticated (e.g., via `az login` or environment variables for `DefaultAzureCredential`) and the `workspace_id` provided to the optimizer is valid and accessible. If these prerequisites are not met, the Azure-dependent operations will fail. Refer to the main `README.md` for more details on Azure connectivity prerequisites.
 
 **To Run:**
 ```bash
@@ -80,7 +88,7 @@ python examples/use_cases/example_rule_engine_tester.py
 This script illustrates how to use the `ThreatHunter` component to execute a threat hunting query.
 It programmatically:
 1. Sets up temporary `hunting_queries.yaml` and `detection_patterns.yaml` files in the `config/` directory (backing up and restoring any originals). This is done because `ThreatHunter`'s stubs for loading these configurations expect them in fixed locations.
-2. Initializes `KQLOptimizer` (a dependency for `ThreatHunter`).
+2. Initializes `AdvancedKQLOptimizer` (a dependency for `ThreatHunter`).
 3. Initializes `ThreatHunter`.
 4. Calls `run_hunt` for a mock hunt ID defined in the temporary configuration.
 5. Prints the (stubbed) `ThreatHuntingResult`, showing structure for findings, severity, confidence, etc.
