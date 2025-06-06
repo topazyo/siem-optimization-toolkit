@@ -15,3 +15,5 @@ aiokafka
 prometheus-client
 jsonschema
 cryptography
+matplotlib
+seaborn
