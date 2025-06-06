@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 - **Ingestion Monitoring**: Real-time tracking of log volumes
 - **Cost Analysis**: Automated cost tracking and optimization
-- **Query Optimization**: Performance-tuned KQL queries
+- **Query Optimization**: Performance-tuned KQL queries; offers suggestions and can automatically apply or suggest common pattern-based optimizations.
 - **Policy Automation**: Intelligent policy management
 
 ##  Azure Connectivity & Prerequisites

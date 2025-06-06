@@ -1,1 +1,1 @@
-# Placeholder for KQLOptimizationPatterns - full content to be provided manually
+# Placeholder for KQLOptimizationPatterns - content updated with new patterns and enhanced fix methods

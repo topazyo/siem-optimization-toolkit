@@ -42,7 +42,7 @@ python examples/use_cases/example_sentinel_monitor_analysis.py
 **File:** `python examples/use_cases/example_kql_optimizer.py`
 
 **Description:**
-This script shows how to use the `AdvancedKQLOptimizer` to attempt to optimize a Kusto Query Language (KQL) query. It initializes the optimizer, provides a sample KQL query, calls the `optimize_query` method, and then prints the original query, the (stubbed) "optimized" query, and any (stubbed) optimization details provided.
+This script shows how to use the `AdvancedKQLOptimizer` to attempt to optimize a Kusto Query Language (KQL) query. It initializes the optimizer, provides a sample KQL query, calls the `optimize_query` method, and then prints the original query, the potentially modified query (as the optimizer can now apply some safe changes directly or add detailed suggestions as comments), and a list of identified optimization opportunities.
 
 **Note on Azure Credentials:**
 `AdvancedKQLOptimizer` initialization itself does not require Azure calls. However, its methods for query optimization and benchmarking (e.g., `benchmark_query`, and `optimize_query` when it invokes benchmarking) now make **live Azure calls** to execute KQL queries and retrieve performance statistics from your Log Analytics workspace.
