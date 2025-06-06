@@ -4,7 +4,7 @@ This document provides an overview of the example scripts available in the `exam
 
 **Note on Azure API Calls and Stubbed Methods:**
 
-This toolkit contains a mix of components. Some, like the `AdvancedKQLOptimizer` (for benchmarking), `QueryBenchmark` (for benchmarking), `SentinelMonitor` (for data ingestion analysis), and `ThreatHunter` (for executing hunts), have been updated to make **live Azure API calls** to your Log Analytics workspace. For these components to function correctly, you must meet the Azure connectivity prerequisites (see `README.md`). If these prerequisites are not met, the Azure calls will fail.
+This toolkit contains a mix of components. Some, like the `AdvancedKQLOptimizer` (for benchmarking), `QueryBenchmark` (for benchmarking), `SentinelMonitor` (for data ingestion analysis), `ThreatHunter` (for executing hunts), and `RuleEngine` (for evaluating detection rules), have been updated to make **live Azure API calls** to your Log Analytics workspace. For these components to function correctly, you must meet the Azure connectivity prerequisites (see `README.md`). If these prerequisites are not met, the Azure calls will fail.
 
 Other components, or parts of components not directly related to live query execution, may still use placeholder (stubbed) methods for some Azure API interactions or complex internal logic. Therefore, while examples will run and show the intended flow, the output data for these stubbed parts will be based on mock data and may not reflect real-world processing outcomes until those specific stubs are replaced with full implementations.
 
@@ -67,13 +67,16 @@ This script demonstrates the workflow of using the `RuleEngine` to evaluate dete
 It programmatically:
 1. Sets up temporary directories for a dummy rule configuration (`.yaml`) and a dummy test case (`.json`).
 2. Initializes `RuleEngine` using the temporary rule.
-3. Evaluates the dummy rule with a mock context and prints the (stubbed) results.
+3. Evaluates the detection rule. If the `RuleEngine` is initialized with a valid `workspace_id` (see note below) and Azure connectivity is available, this evaluation will attempt to execute the rule's KQL query live. Results will depend on this execution.
 4. Initializes `RuleTester` with the `RuleEngine`.
 5. Calls `test_rule` to test the dummy rule (noting that `RuleTester`'s default test case loading is stubbed and might not find the temporary test case correctly without modification to `RuleTester` itself).
 6. Prints the (stubbed) test results and a (stubbed) test report.
 7. Cleans up the temporary files and directories.
 
-This example is particularly useful for understanding the interaction between rule definitions, the engine, and the testing framework, even with stubbed underlying logic.
+This example is particularly useful for understanding the interaction between rule definitions, the engine (which now attempts live KQL execution for rules), and the testing framework.
+
+**Note on Azure Credentials and Workspace:**
+To enable live KQL execution for rule evaluation, the `RuleEngine` must be initialized with a valid Azure `workspace_id`. The example script `example_rule_engine_tester.py` may need to be modified to pass this `workspace_id` to the `RuleEngine` constructor. Ensure your Azure environment is correctly authenticated (e.g., via `az login` or environment variables for `DefaultAzureCredential`). If these prerequisites are not met, or if a rule's query uses specific mock context flags (like `SIMULATE_MATCHES_FOR_RULE_...` in `CustomDetectionRule._execute_query`), the KQL execution part might be skipped or use fallback simulated data. Refer to the main `README.md` for more details on Azure connectivity prerequisites.
 
 **To Run:**
 ```bash
