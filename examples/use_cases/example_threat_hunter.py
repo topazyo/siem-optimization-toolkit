@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Assuming these are the correct import paths
-from src.python.query_optimization.kql_optimizer import KQLOptimizer
+from src.python.query_optimization.advanced_kql_optimizer import AdvancedKQLOptimizer
 from src.python.threat_hunting.hunter import ThreatHunter, ThreatHuntingResult
 
 # --- Temporary Configuration Setup for ThreatHunter Example ---
@@ -98,11 +98,10 @@ async def main():
 
     try:
         # Initialize KQLOptimizer (dependency for ThreatHunter)
-        kql_optimizer = KQLOptimizer(
-            workspace_id=mock_workspace_id,
-            subscription_id=mock_subscription_id
+        kql_optimizer = AdvancedKQLOptimizer(
+            workspace_id=mock_workspace_id
         )
-        print("KQLOptimizer initialized for ThreatHunter.")
+        print("AdvancedKQLOptimizer initialized for ThreatHunter.")
 
         # Initialize ThreatHunter
         # This will use the temporary config/hunting_queries.yaml and config/detection_patterns.yaml
