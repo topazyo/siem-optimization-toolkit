@@ -1,1 +1,2 @@
-# Placeholder for QueryBenchmark - full content to be provided manually AFTER _execute_query update
+
+# Placeholder for QueryBenchmark - content to be updated with FULL SDK implementation for its _execute_query methods

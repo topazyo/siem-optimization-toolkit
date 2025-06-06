@@ -4,7 +4,7 @@ This document provides an overview of the example scripts available in the `exam
 
 **Note on Azure API Calls and Stubbed Methods:**
 
-This toolkit contains a mix of components. Some, like the `AdvancedKQLOptimizer` and `QueryBenchmark` (for their query execution and benchmarking features), have been updated to attempt **live Azure API calls** to your Log Analytics workspace. For these components to function correctly, you must meet the Azure connectivity prerequisites (see `README.md`). If these prerequisites are not met, the Azure calls will fail.
+This toolkit contains a mix of components. Some, like the `AdvancedKQLOptimizer` (for benchmarking), `QueryBenchmark` (for benchmarking), `SentinelMonitor` (for data ingestion analysis), and `ThreatHunter` (for executing hunts), have been updated to make **live Azure API calls** to your Log Analytics workspace. For these components to function correctly, you must meet the Azure connectivity prerequisites (see `README.md`). If these prerequisites are not met, the Azure calls will fail.
 
 Other components, or parts of components not directly related to live query execution, may still use placeholder (stubbed) methods for some Azure API interactions or complex internal logic. Therefore, while examples will run and show the intended flow, the output data for these stubbed parts will be based on mock data and may not reflect real-world processing outcomes until those specific stubs are replaced with full implementations.
 
@@ -28,7 +28,7 @@ All examples are designed to be run from the root directory of the repository.
 This script demonstrates how to use the `SentinelMonitor` component to analyze log ingestion patterns. It initializes the monitor, calls the `analyze_ingestion_patterns` method, and prints a summary of the analysis results (based on simulated Azure data interaction), including total volume, daily patterns, peak hours, recommendations, and cost impact.
 
 **Note on Azure Credentials:**
-For real-world use against an Azure environment, ensure your Azure credentials are properly configured for `DefaultAzureCredential` (e.g., by logging in with `az login`). The example uses placeholder Workspace and Subscription IDs which you would replace. The underlying Azure data retrieval in `SentinelMonitor` is structured for live calls but currently uses simulated data.
+For real-world use against an Azure environment, ensure your Azure credentials are properly configured for `DefaultAzureCredential` (e.g., by logging in with `az login`). The example uses placeholder Workspace and Subscription IDs which you would replace. The underlying Azure data retrieval in `SentinelMonitor` (specifically for fetching ingestion data via `_get_ingestion_data`) now makes **live Azure calls**. Ensure prerequisites in `README.md` are met.
 
 **To Run:**
 ```bash
@@ -91,8 +91,11 @@ It programmatically:
 2. Initializes `AdvancedKQLOptimizer` (a dependency for `ThreatHunter`).
 3. Initializes `ThreatHunter`.
 4. Calls `run_hunt` for a mock hunt ID defined in the temporary configuration.
-5. Prints a `ThreatHuntingResult` (based on simulated Azure data interaction for query execution), showing structure for findings, severity, confidence, etc.
+5. Prints a `ThreatHuntingResult`. The execution of hunt queries via `ThreatHunter` now involves **live Azure calls** to fetch data, showing structure for findings, severity, confidence, etc.
 6. Cleans up the temporary configuration files.
+
+**Note on Azure Credentials:**
+Executing hunts with `ThreatHunter` involves live KQL queries against your Azure Log Analytics workspace. Ensure your Azure environment is correctly authenticated (e.g., via `az login` or environment variables for `DefaultAzureCredential`) and the `workspace_id` provided to the `ThreatHunter` is valid and accessible. Refer to the main `README.md` for more details on Azure connectivity prerequisites.
 
 **To Run:**
 ```bash
