@@ -1,0 +1,6 @@
+// Placeholder KQL Query
+// This file is auto-generated.
+// Add your KQL queries here, one per file, or follow your project's convention.
+SecurityEvent
+| where TimeGenerated > ago(1h)
+| count

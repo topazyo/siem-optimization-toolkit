@@ -36,10 +36,10 @@ python examples/use_cases/example_sentinel_monitor_analysis.py
 **File:** `python examples/use_cases/example_kql_optimizer.py`
 
 **Description:**
-This script shows how to use the `KQLOptimizer` to attempt to optimize a Kusto Query Language (KQL) query. It initializes the optimizer, provides a sample KQL query, calls the `optimize_query` method, and then prints the original query, the (stubbed) "optimized" query, and any (stubbed) optimization details provided.
+This script shows how to use the `AdvancedKQLOptimizer` to attempt to optimize a Kusto Query Language (KQL) query. It initializes the optimizer, provides a sample KQL query, calls the `optimize_query` method, and then prints the original query, the (stubbed) "optimized" query, and any (stubbed) optimization details provided.
 
 **Note on Azure Credentials:**
-While `KQLOptimizer` initialization doesn't require Azure calls, methods for benchmarking (which `optimize_query` might use to estimate improvement) would. These are currently stubbed.
+While `AdvancedKQLOptimizer` initialization doesn't require Azure calls, methods for benchmarking (which `optimize_query` might use to estimate improvement) would. These are currently stubbed.
 
 **To Run:**
 ```bash
@@ -80,7 +80,7 @@ python examples/use_cases/example_rule_engine_tester.py
 This script illustrates how to use the `ThreatHunter` component to execute a threat hunting query.
 It programmatically:
 1. Sets up temporary `hunting_queries.yaml` and `detection_patterns.yaml` files in the `config/` directory (backing up and restoring any originals). This is done because `ThreatHunter`'s stubs for loading these configurations expect them in fixed locations.
-2. Initializes `KQLOptimizer` (a dependency for `ThreatHunter`).
+2. Initializes `AdvancedKQLOptimizer` (a dependency for `ThreatHunter`).
 3. Initializes `ThreatHunter`.
 4. Calls `run_hunt` for a mock hunt ID defined in the temporary configuration.
 5. Prints the (stubbed) `ThreatHuntingResult`, showing structure for findings, severity, confidence, etc.

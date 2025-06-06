@@ -20,7 +20,7 @@ git clone https://github.com/yourusername/siem-optimization-toolkit
 pip install -r requirements.txt
 
 # Run initial setup
-./scripts/setup/initialize.sh
+./scripts/setup/initialize.sh # This script also creates default configuration files and necessary directories if they are missing.
 ```
 
 ## 📊 Core Components
