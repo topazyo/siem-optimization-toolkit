@@ -1,3 +1,4 @@
+
 # src/kql/threat_hunting/hunter.py
 
 from typing import Dict, List, Optional, Union

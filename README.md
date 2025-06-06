@@ -8,7 +8,7 @@ A comprehensive toolkit for optimizing Microsoft Sentinel SIEM implementation, f
 - Cost optimization frameworks
 - Custom KQL query templates
 - Automated policy management
-- Compliance-aware retention policies
+- Compliance-aware retention policies (including analysis and optimization suggestions for table retention)
 
 ## 🚀 Quick Start
 

@@ -28,7 +28,7 @@ All examples are designed to be run from the root directory of the repository.
 This script demonstrates how to use the `SentinelMonitor` component to analyze log ingestion patterns. It initializes the monitor, calls the `analyze_ingestion_patterns` method, and prints a summary of the analysis results (based on simulated Azure data interaction), including total volume, daily patterns, peak hours, recommendations, and cost impact.
 
 **Note on Azure Credentials:**
-For real-world use against an Azure environment, ensure your Azure credentials are properly configured for `DefaultAzureCredential` (e.g., by logging in with `az login`). The example uses placeholder Workspace and Subscription IDs which you would replace. The underlying Azure data retrieval in `SentinelMonitor` (specifically for fetching ingestion data via `_get_ingestion_data`) now makes **live Azure calls**. Ensure prerequisites in `README.md` are met.
+For real-world use against an Azure environment, ensure your Azure credentials are properly configured for `DefaultAzureCredential` (e.g., by logging in with `az login`). The example uses placeholder `workspace_id`, `subscription_id`, and `resource_group_name` which you would replace, as `SentinelMonitor` requires these for initialization. The underlying Azure data retrieval in `SentinelMonitor` (specifically for fetching ingestion data via `_get_ingestion_data`) now makes **live Azure calls**. Ensure prerequisites in `README.md` are met.
 
 **To Run:**
 ```bash
