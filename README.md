@@ -35,8 +35,8 @@ pip install -r requirements.txt
 Certain tools within this toolkit, particularly those involving query benchmarking and direct interaction with your Log Analytics workspace (e.g., `AdvancedKQLOptimizer`, `QueryBenchmark`), require live connectivity to Azure. To use these features, please ensure the following prerequisites are met:
 
 *   **Azure Subscription:** You must have an active Azure subscription.
-*   **Log Analytics Workspace:** You need a Log Analytics workspace, and its Workspace ID must be provided to the relevant tools.
-*   **Permissions:** The identity (user, service principal, or managed identity) executing the scripts needs appropriate read permissions on the Log Analytics workspace (e.g., "Log Analytics Reader" role or more specific data querying permissions like `Microsoft.OperationalInsights/workspaces/query/read`).
+*   **Log Analytics Workspace:** You need a Log Analytics workspace. Its Workspace ID and the **Resource Group name** it belongs to must be provided to relevant tools (like `SentinelMonitor`).
+*   **Permissions:** The identity (user, service principal, or managed identity) executing the scripts needs appropriate read permissions on the Log Analytics workspace (e.g., "Log Analytics Reader" role or more specific data querying permissions like `Microsoft.OperationalInsights/workspaces/query/read`). For features like table retention analysis by `SentinelMonitor`, permissions such as `Microsoft.OperationalInsights/workspaces/tables/read` (typically included in "Log Analytics Reader") are also needed.
 *   **Authentication:** The scripts leverage `DefaultAzureCredential` from the `azure-identity` Python library. This supports various authentication methods:
     *   **Azure CLI Login:** For local development, you can authenticate by running `az login` in your terminal.
     *   **Service Principal:** Set the following environment variables: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, and `AZURE_CLIENT_SECRET`.

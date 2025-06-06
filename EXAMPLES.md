@@ -30,6 +30,8 @@ This script demonstrates how to use the `SentinelMonitor` component to analyze l
 **Note on Azure Credentials:**
 For real-world use against an Azure environment, ensure your Azure credentials are properly configured for `DefaultAzureCredential` (e.g., by logging in with `az login`). The example uses placeholder `workspace_id`, `subscription_id`, and `resource_group_name` which you would replace, as `SentinelMonitor` requires these for initialization. The underlying Azure data retrieval in `SentinelMonitor` (specifically for fetching ingestion data via `_get_ingestion_data`) now makes **live Azure calls**. Ensure prerequisites in `README.md` are met.
 
+Additionally, `SentinelMonitor` features like `optimize_retention_policies` (if used, though not shown in this specific example) make live Azure Management Plane calls to retrieve table-specific retention settings.
+
 **To Run:**
 ```bash
 python examples/use_cases/example_sentinel_monitor_analysis.py
