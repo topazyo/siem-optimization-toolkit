@@ -1,2 +1,2 @@
 
-# Placeholder for ThreatHunter - content to be updated with basic recommendation helpers
+# Placeholder for ThreatHunter - content to be updated with generate_hunt_report using new helpers
