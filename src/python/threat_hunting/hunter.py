@@ -1,2 +1,2 @@
 
-# Placeholder for ThreatHunter - content to be confirmed/set to full SDK implementation for _execute_query (as per P35)
+# Placeholder for ThreatHunter - content to be updated with basic recommendation helpers
