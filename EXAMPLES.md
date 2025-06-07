@@ -123,7 +123,30 @@ It:
 5. Prints the (stubbed) routed logs, which will show how logs are grouped by destination type and include metadata from the `_enrich_log` method.
 6. Generates and prints a (stubbed) metrics report from the router.
 
-This example shows the basic flow of log processing, even though while some basic condition matching and simple transformations are implemented, many advanced transformations and actual destination sending logic are currently placeholders.
+This example shows the basic flow of log processing, even though now supports sending logs to Azure Blob Storage (if configured with a connection string) and includes a `regex_extract` transformer. Other destinations and some advanced transformations may still be placeholders or use mock implementations.
+
+**Note on Configuring Azure Blob Storage Destination:**
+To use the Azure Blob Storage destination with `EnhancedLogRouter`, you must configure it in the router's main YAML configuration file (e.g., `config/router_config_example.yaml` - *ensure you create/use an appropriate config file*).
+Under a top-level `destinations_config` key, add an `AzureBlobStorage` section:
+```yaml
+destinations_config:
+  AzureBlobStorage:
+    connection_string: "YOUR_AZURE_STORAGE_CONNECTION_STRING_HERE"
+    # default_container: "logs" # Optional: can be specified here or per-rule
+```
+Routing rules in the `rules` section of the same YAML can then specify a destination like:
+```yaml
+# Example Rule Snippet
+# - name: "ArchiveCriticalToBlob"
+#   ... conditions ...
+#   destination:
+#     type: "AzureBlobStorage"
+#     container_name: "your-critical-logs-container"
+#     blob_prefix: "critical_events/" # Optional path prefix within the container
+#     # blob_name_format: "timestamp_uuid" # Optional, default behavior
+#   ...
+```
+Ensure the provided connection string has appropriate permissions (e.g., write, create) for the specified blob container.
 
 **To Run:**
 ```bash

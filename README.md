@@ -9,6 +9,7 @@ A comprehensive toolkit for optimizing Microsoft Sentinel SIEM implementation, f
 - Custom KQL query templates
 - Automated policy management
 - Compliance-aware retention policies (including analysis and optimization suggestions for table retention)
+- Advanced Log Routing with configurable destinations (e.g., Azure Blob Storage now supported) and data transformations (including regex extraction).
 
 ## 🚀 Quick Start
 
@@ -43,6 +44,8 @@ Certain tools within this toolkit, particularly those involving query benchmarki
     *   **Managed Identity:** If running in an Azure environment that supports Managed Identities (e.g., Azure VMs, App Service), configure the identity with the necessary permissions.
     *   Other methods supported by `DefaultAzureCredential` (see Azure SDK documentation for details).
 *   **Costs and API Limits:** Be aware that querying Azure Log Analytics can incur costs based on the amount of data processed. Frequent or extensive benchmarking might also be subject to API rate limits or throttling by the Azure service. Monitor your usage accordingly.
+
+Furthermore, for specific components like `EnhancedLogRouter` when using Azure-based destinations (e.g., Azure Blob Storage), you will need to provide necessary Azure Storage connection strings in its configuration. The current implementation for Azure Blob Storage prioritizes connection strings. If `DefaultAzureCredential` were to be used for storage in the future, the runtime identity would also need permissions to the target Azure Storage resources.
 
 ## 📘 Documentation
 
