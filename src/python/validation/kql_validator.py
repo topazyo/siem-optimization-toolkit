@@ -23,7 +23,6 @@ class KQLQueryValidator:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.validation_rules = self._load_validation_rules()
-        self.performance_thresholds = self._load_performance_thresholds()
 
     def _load_validation_rules(self) -> Dict:
         """Load query validation rules."""
@@ -69,23 +68,6 @@ class KQLQueryValidator:
                     r'secret',
                     r'token'
                 ]
-            }
-        }
-
-    def _load_performance_thresholds(self) -> Dict:
-        """Load performance thresholds."""
-        return {
-            'execution_time': {
-                'warning': 30,  # seconds
-                'critical': 60
-            },
-            'data_scan': {
-                'warning': 1000,  # MB
-                'critical': 5000
-            },
-            'result_count': {
-                'warning': 10000,
-                'critical': 50000
             }
         }
 
