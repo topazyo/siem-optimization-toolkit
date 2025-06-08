@@ -1,5 +1,5 @@
 import asyncio
-from src.python.query_optimization.kql_optimizer import KQLOptimizer
+from src.python.query_optimization.advanced_kql_optimizer import AdvancedKQLOptimizer
 # Assuming KQLOptimizer is in src.python.query_optimization.kql_optimizer
 # Adjust if the path is different.
 
@@ -15,9 +15,8 @@ async def main():
     # but its methods that might benchmark queries would.
     # Our stubs currently prevent actual Azure calls.
     try:
-        optimizer = KQLOptimizer(
-            workspace_id=mock_workspace_id,
-            subscription_id=mock_subscription_id
+        optimizer = AdvancedKQLOptimizer(
+            workspace_id=mock_workspace_id
         )
         print("KQLOptimizer initialized.")
     except Exception as e:
